@@ -6,15 +6,6 @@ export interface ParentInfo {
   memberId?: string; // Eğer ebeveyn üye ise üye ID'si
 }
 
-export interface HealthInfo {
-  hasHealthIssues: boolean;
-  healthIssuesNotes?: string;
-  hasDoctorApproval: boolean;
-  doctorInfo?: string;
-  emergencyContactName?: string;
-  emergencyContactPhone?: string;
-}
-
 export interface Member {
   id: string;
   fullName: string;
@@ -28,9 +19,10 @@ export interface Member {
   gender?: 'Erkek' | 'Kadın' | 'Diğer';
   address?: string;
   notes?: string;
+  hasHealthIssues?: boolean;
+  healthIssues?: string;
   isMinor?: boolean; // 18 yaşından küçük mü?
   parentInfo?: ParentInfo; // Sadece isMinor true ise dolu olacak
-  healthInfo?: HealthInfo; // Sağlık bilgileri
   createdAt: string;
   updatedAt: string;
 }

@@ -28,6 +28,8 @@ export const MemberFormModal = ({
     gender: 'Erkek',
     address: '',
     notes: '',
+    hasHealthIssues: false,
+    healthIssues: '',
     isMinor: false,
     parentInfo: undefined
   });
@@ -66,18 +68,34 @@ export const MemberFormModal = ({
           email: '',
           isMember: false,
           memberId: ''
-        }) : undefined
+        }) : undefined,
+        hasHealthIssues: newIsMinor ? false : prev.hasHealthIssues,
+        healthIssues: newIsMinor ? '' : prev.healthIssues
       }));
     }
   }, [formData.birthDate, isMinor]);
 
   useEffect(() => {
     if (member) {
-      // Convert member to form data, excluding id, createdAt, updatedAt
-      const { id, createdAt, updatedAt, ...memberData } = member;
-      setFormData(memberData);
+      setFormData({
+        fullName: member.fullName,
+        email: member.email || '',
+        phone: member.phone,
+        membershipStartDate: member.membershipStartDate,
+        membershipEndDate: member.membershipEndDate,
+        membershipType: member.membershipType,
+        status: member.status,
+        birthDate: member.birthDate || '',
+        gender: member.gender || 'Erkek',
+        address: member.address || '',
+        notes: member.notes || '',
+        hasHealthIssues: member.hasHealthIssues || false,
+        healthIssues: member.healthIssues || '',
+        isMinor: member.isMinor || false,
+        parentInfo: member.parentInfo
+      });
     } else {
-      // Reset form
+      // Reset form when adding a new member
       setFormData({
         fullName: '',
         email: '',
@@ -90,6 +108,10 @@ export const MemberFormModal = ({
         gender: 'Erkek',
         address: '',
         notes: '',
+        hasHealthIssues: false,
+        healthIssues: '',
+        isMinor: false,
+        parentInfo: undefined
       });
     }
   }, [member, isOpen]);
@@ -457,6 +479,43 @@ export const MemberFormModal = ({
                 onChange={handleChange}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
               />
+            </div>
+
+            {/* Sağlık Sorunları */}
+            <div className="mt-4 p-4 bg-blue-50 rounded-md border border-blue-100">
+              <div className="flex items-center mb-3">
+                <input
+                  id="hasHealthIssues"
+                  name="hasHealthIssues"
+                  type="checkbox"
+                  checked={formData.hasHealthIssues || false}
+                  onChange={handleChange}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="hasHealthIssues" className="ml-2 block text-sm font-medium text-gray-700">
+                  Üyenin sağlık sorunu var mı?
+                </label>
+              </div>
+              
+              {formData.hasHealthIssues && (
+                <div>
+                  <label htmlFor="healthIssues" className="block text-sm font-medium text-gray-700 mb-1">
+                    Sağlık Sorunları / Notlar
+                  </label>
+                  <textarea
+                    id="healthIssues"
+                    name="healthIssues"
+                    rows={3}
+                    value={formData.healthIssues || ''}
+                    onChange={handleChange}
+                    placeholder="Örn: Kalp rahatsızlığı, yüksek tansiyon, bel fıtığı, vs."
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Lütfen üyenin bilinen sağlık sorunlarını ve dikkat edilmesi gerekenleri yazınız.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end space-x-3 pt-4">
