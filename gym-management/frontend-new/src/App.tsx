@@ -4,8 +4,8 @@ import { auth } from './lib/firebase';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Members from './pages/Members';
-import Calendar from './pages/Calendar';
-import Payments from './pages/Payments';
+import { CalendarPage } from './pages/CalendarPage';
+import { PaymentsPage } from './pages/PaymentsPage';
 import AppLayout from './layouts/AppLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -44,8 +44,8 @@ const AuthCheck = () => {
       }>
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/members" element={<Members />} />
-        <Route path="/calendar" element={<Calendar />} />
-        <Route path="/payments" element={<Payments />} />
+        <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/payments" element={<PaymentsPage />} />
       </Route>
       
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
