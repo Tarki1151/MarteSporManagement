@@ -99,12 +99,34 @@ an bilinçli bir tercih değil, boşluk. Aşağıdaki maddeler bunu kapatmak iç
       insanları okumadan kapatmaya alıştırır — asıl onayları da işe
       yaramaz hale getirir.
 
-- [ ] **D0-3 · Tab bar iki platformda da yabancı.**
+- [x] **D0-3 · Tab bar iki platformda da yabancı.**
       Özel `TabBar` bileşeni her iki platformda aynı görünüyor. iOS'ta blur'lu
       alt sekme çubuğu, Android'de Material 3 `NavigationBar` (aktif göstergesi
       "pill" şeklinde) beklenir.
       **İş:** Platform-koşullu tab bar veya en azından iOS'ta
       `expo-blur` ile yarı saydam zemin, Android'de M3 aktif gösterge.
+
+      **Çözüldü (20 Ağustos 2026) — blur hariç.**
+
+      Android'e M3 seçim göstergesi geldi: aktif simgenin arkasında `surf2`
+      dolgulu pill, biraz büyük glyph, daha küçük ve kalın etiket. iOS'ta
+      pill tamamen çöküyor — orada seçili sekme yalnızca tint'lenir, pill
+      koymak yanlış olurdu. Erişilebilirlik de eksikti: `accessibilityRole`,
+      `accessibilityState.selected` ve etiket eklendi.
+
+      Ayrıca gerçek bir hata düzeldi: alt boşluk `paddingBottom: 18` diye
+      sabitti. iPhone home indicator'ın altında (34pt) bu az, alt inset'i
+      olmayan donanımda fazla. Artık `Math.max(insets.bottom, 10)` —
+      10 çubuğun kendi nefes payı, gerisi sisteme ait. Üst kenar da
+      `StyleSheet.hairlineWidth`.
+
+      **iOS blur bilinçli olarak ertelendi.** `expo-blur` kurulu değil, yani
+      yeni bir native build gerekiyor; asıl mesele ise blur'un ancak içerik
+      çubuğun **altından kayarsa** bir anlam taşıması. Şu anda tab bar flex
+      kolonunda, içeriğin üstünü örtmüyor — bu haliyle blur, opak ekran
+      arkaplanını bulanıklaştırıp birebir aynı görüntüyü verirdi. Doğru
+      yapılması ~15 ekranın alt boşluğunun yeniden düzenlenmesi demek;
+      ayrı bir madde olarak ele alınmalı (bkz. D0-6 güvenli alan işi).
 
 - [x] **D0-4 · Haptic geri bildirim tutarsız.**
       Yalnızca check-in ve antrenman set tamamlamada var. Buton basışları,

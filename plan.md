@@ -1202,6 +1202,27 @@ uyguluyor.
 Görsel olarak simülatörde doğrulandı (buton render oluyor); onay diyaloğu
 simülatörde dokunma kaydedilmediği için **tıklanarak doğrulanmadı**.
 
+### [x] DEV-7 · Oturum kapatma hiçbir yere yönlendirmiyordu
+
+DEV-6'yı simülatörde doğrularken çıktı: `AccessGuard`'ın "Çıkış yap" butonu
+çıkışı tetikliyor ama uygulama aynı ekranda kalıyordu — buton `…` durumunda
+donuyor, kullanıcı hâlâ kilitli yüzeyde.
+
+Sebep: kimlik durumuna göre yönlendirme **yalnızca** `app/index.tsx` içindeydi
+ve o effect sadece o ekran mount olduğunda çalışıyor. Başka bir yerden çıkış
+yapıldığında (profil ekranı ya da `AccessGuard`) dinleyici `user`'ı
+temizliyor, fakat hiçbir şey navigasyon yapmıyordu. Yani sorun DEV-6'dan
+önce de vardı; profil ekranındaki çıkış da aynı şekilde takılıyordu.
+
+**Çözüm:** `context/AuthRedirect.tsx` — `ThemeSync` gibi başsız, `AuthProvider`
+içinde mount ediliyor, dolayısıyla tek bir route'u değil tüm uygulamayı
+izliyor. Oturum kapalıysa ve bulunulan yol herkese açık değilse
+(`/` launcher ile `/onboarding/*` hariç) `/onboarding/register`'a
+yönlendiriyor.
+
+Simülatörde doğrulandı: oturum kapalıyken `gymentramobile://trainer` derin
+bağlantısı artık kayıt ekranına düşüyor.
+
 ## [~] VC-1 · **GymEntra hiçbir sürüm kontrolünde değil** ⚠️
 
 P5-5 (CI/CD) için depoya bakarken çıktı ve CI'dan çok daha acil:
