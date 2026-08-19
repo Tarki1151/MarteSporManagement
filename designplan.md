@@ -179,10 +179,35 @@ an bilinçli bir tercih değil, boşluk. Aşağıdaki maddeler bunu kapatmak iç
       "Üye kabul yetkin yok — salon yöneticisi bu yetkiyi sana verebilir"
       olarak düzeltildi.
 
-- [ ] **D0-6 · Güvenli alan (safe area) doğrulanmalı.**
+- [x] **D0-6 · Güvenli alan (safe area) doğrulanmalı.**
       `Screen` bileşeni var ama çentikli/dinamik adalı cihazlarda ve Android
       gesture navigation barında alt/üst boşlukların doğru olduğu her ekranda
       test edilmemiş.
+
+      **Çözüldü (20 Ağustos 2026).** Denetim iki ayrı hata çıkardı.
+
+      **1. Alt kenar hiç uygulanmıyordu.** `Screen`, `edges` olarak
+      `['top','left','right']` veriyordu — alt inset hiçbir yerde yoktu. Tab
+      bar'ı olan ekranlarda bu görünmüyordu (çubuk boşluğu dolduruyordu), ama
+      tab bar'sız **9 ekranın hepsinde** (`checkin`, `paywall`, 5 onboarding
+      ekranı, antrenman seansı) içerik home indicator'ın altına giriyordu.
+      `Screen` artık varsayılan olarak dört kenarı da sahipleniyor; alt inset'i
+      kendi tüketen üç rol layout'u `edges={['top','left','right']}` geçiyor.
+
+      **2. İç içe `Screen` üst inset'i iki kez uyguluyordu.** Altı rol ekranı
+      (`admin/settings`, `admin/today`, `member/payments`,
+      `member/workout/{index,session}`, `trainer/builder`) layout zaten bir
+      `Screen` render ederken içeride ikinci bir tane daha açıyordu.
+      `SafeAreaView` bir üst bileşenin inset'i tükettiğini bilmez, dolayısıyla
+      çentik payı iki kere eklenmişti. Hepsi kaldırıldı ve bileşenin
+      dokümantasyonuna iç içe kullanmama uyarısı yazıldı.
+
+      Ayrıca antrenman seansında bitiş butonunun `marginBottom: spacing.xl`
+      sabiti `Math.max(insets.bottom, spacing.md)` oldu — o ekranda tab bar
+      gizli olduğu için alt inset'i talep eden başka hiçbir şey yok.
+
+      iOS simülatöründe doğrulandı (kayıt ekranının alt metni ~34pt yukarı
+      taşındı). **Android gesture navigation barı cihazda doğrulanmadı.**
 
 ---
 
