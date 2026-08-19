@@ -249,9 +249,34 @@ an bilinçli bir tercih değil, boşluk. Aşağıdaki maddeler bunu kapatmak iç
       satır içi kırmızı metin, bazılarında hiçbir şey.
       **İş:** Tek bir `Toast`/`Snackbar` deseni; hata mesajları için tek stil.
 
-- [ ] **D1-6 · Antrenör "Üyeler" listesinde arama/sıralama yok.**
+- [x] **D1-6 · Antrenör "Üyeler" listesinde arama/sıralama yok.**
       50+ üyeli bir salonda liste kullanılamaz hale gelir.
       **İş:** Arama alanı + sıralama (ada göre / son aktiviteye göre).
+
+      **Çözüldü (20 Ağustos 2026).** Filtrelerin üstünde arama alanı — belirli
+      bir kişiye en hızlı yol o, filtrelerin arkasına saklanmamalı. Ad ve
+      e-posta üzerinde arıyor.
+
+      **Arama Türkçe farkında.** Düz `toLowerCase()` Türkçeyi iki yönden
+      bozuyor: "I"yı "ı" yerine "i"ye eşliyor ve aksanları bıraktığı için
+      sorgu hiç tutmuyor. `utils/search.ts` önce tr yerelinde küçültüyor, sonra
+      aksanlı harfleri tabanına düşürüyor — antrenör "gulsah" yazınca "Gülşah",
+      "isik" yazınca "Işık" geliyor. Sıralama da `localeCompare(…, 'tr')`:
+      Ahmet, Çağla, Işık, İrem, Şule, Zeynep.
+
+      **"Son aktiviteye göre" bilinçli olarak yapılmadı.** Üyelik kaydında son
+      aktiviteyi tutan hiçbir alan yok; bu sıralama, zaten iki koleksiyon
+      dinleyen bir ekranda her üyenin giriş geçmişini taramak demekti. Yerine
+      katılım tarihi (`approvedAt`) kondu — "bana yeni gelen kim?" sorusunu
+      elde olan veriyle aynı şekilde yanıtlıyor.
+
+      Boş durumun artık üçüncü bir sebebi var (eşleşmeyen arama) ve mesaj
+      buna göre ayrışıyor. `Chip` bileşenine sıralama düğmesi için `icon`
+      desteği eklendi.
+
+      Katlama ve sıralama Node'da örneklerle doğrulandı; ekranın kendisi
+      simülatörde **görsel olarak doğrulanmadı** (oturum açmak gerekiyor,
+      simülatörde dokunmalar kaydedilmiyor).
 
 ---
 
