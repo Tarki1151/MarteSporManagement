@@ -1,0 +1,336 @@
+# GymEntra — Tasarım Planı (Claude Design brief'i)
+
+Bu dosya, uygulamanın mevcut tasarım dilinin modern iOS ve Android
+standartlarına göre denetimi ve Claude Design'a verilecek iş listesidir.
+
+**Denetim tarihi:** 19 Ağustos 2026
+**Platform:** iOS 17+ ve Android 13+ · **yalnızca telefon** (v1'de tablet yok)
+**Yön:** yalnızca dikey (portrait)
+**Temel ilke:** Her karar önce UX. Görsel süsleme, kullanılabilirliği
+bozuyorsa yanlıştır.
+
+---
+
+## Mevcut durumun değerlendirmesi
+
+### Sağlam olan taraflar
+
+- **Gerçek bir tasarım token sistemi var.** `src/theme/tokens.ts` içinde
+  anlamsal renk paleti (`bg0/bg1/surf/surf2/line/txt/sub/p/g1-g3/danger/warn/ok`),
+  tip ölçeği, boşluk, radius ve dokunma hedefi sabitleri tanımlı. Ekranlar ham
+  hex kullanmıyor — bu, beyaz etiket (her salon kendi rengi) için doğru temel.
+- **Çalışan runtime tema türetme.** `derivePalette()` tek bir marka renginden
+  Material-You benzeri tonal yüzeyler üretiyor; anlamsal renkler (danger/warn/ok)
+  türetmeye dahil değil — doğru karar.
+- **Açık/koyu tema desteği** token seviyesinde mevcut.
+- **Dokunma hedefleri** çoğunlukla 44pt+ (`TouchTarget.min = 44`,
+  `critical = 56`), tab bar ve buton bileşenleri buna uyuyor.
+- **Tip ölçeği** Inter ile tutarlı (34/28/22 başlık, 17 gövde, 13 yardımcı,
+  11 etiket).
+
+### Temel sorun
+
+**Tasarım tek bir "koyu, neon-yeşil, özel" görünüme göre kurgulanmış ve her
+iki platformun da yerel diline yabancı.** Ne iOS'un HIG'ine ne Android'in
+Material 3'üne yaslanıyor; ikisinin arasında, kendi kurallarını uyduran bir
+ara dil. Bu, "özel marka" isteniyorsa savunulabilir bir tercihtir — ancak şu
+an bilinçli bir tercih değil, boşluk. Aşağıdaki maddeler bunu kapatmak içindir.
+
+---
+
+## Bulgular ve işler
+
+### D0 — Platform yerelliği (en yüksek etki)
+
+- [x] **D0-1 · Geri navigasyonu platforma uygun değil.**
+      Ekranlarda özel `‹` / `✕` metin butonları var (`admin/checkin.tsx`,
+      `member/payments.tsx`, `member/workout/session.tsx`). iOS'ta kullanıcı
+      **kenardan kaydırarak geri** gitmeyi bekler; Android'de **sistem geri
+      jesti / tuşu** çalışmalıdır. `app.json`'da
+      `android.predictiveBackGestureEnabled: false` — Android 14+ öngörülü geri
+      animasyonu kapalı.
+      **İş:** Expo Router `Stack` başlıklarını platform yerel davranışıyla
+      kullan; özel geri butonlarını kaldır ya da yalnızca gerçek modal
+      ekranlarda bırak. Android geri tuşunun her ekranda doğru davrandığını
+      doğrula.
+      **Çözüm:** Asıl sorun butonlar değildi — üç rol layout'u da `<Slot />`
+      kullanıyordu. `Slot` eşleşen çocuğu **navigatör geçmişi olmadan** render
+      eder, yani push edilen detay ekranlarının geri jesti, geçiş animasyonu ve
+      Android geri desteği hiç yoktu; sekme kökleri ve detay ekranları yerinde
+      takas ediliyordu. Üçü de `Stack`'e çevrildi: sekme kökleri
+      `headerShown: false` (kendi başlıklarını çiziyorlar), push edilen detay
+      ekranları yerel başlığı açıyor — platform doğru geri butonu, iOS kenar
+      kaydırması ve Android geri tuşu böyle bedavaya geliyor.
+      `TabBar` `router.push` yerine `router.replace` kullanıyor: sekmeler
+      birbirinin akranı, yığın değil — push etmek her sekme ziyaretini üst üste
+      yığıyordu, Android geri tuşu uygulamadan çıkmak yerine sekme geçmişinde
+      geriye yürüyordu. `admin/today`, `admin/calendar`, `trainer/member`
+      içindeki el yapımı `‹` butonları kaldırıldı (yerel butonu tekrarlıyor ve
+      44pt'nin altındaydılar). `app.json` → `predictiveBackGestureEnabled: true`.
+      Android geri tuşu davranışı **cihazda doğrulanmadı** — simülatör iOS.
+
+- [x] **D0-2 · Alert/onay diyalogları platform yerel değil.**
+      Antrenmandan çıkışta `Alert.alert` kullanılıyor (doğru), ancak
+      uygulamanın geri kalanında onay gerektiren yıkıcı işlemler (üyeliği
+      reddet, randevu iptal, ödeme reddi) **hiç onay sormuyor**.
+      **İş:** Yıkıcı işlemler için tutarlı bir onay deseni; iOS'ta
+      `ActionSheetIOS`/Alert, Android'de Material dialog.
+
+      **Çözüldü (19 Ağustos 2026).** `src/utils/confirm.ts` →
+      `confirmDestructive({ title, message, confirmLabel, onConfirm })`.
+      `Alert.alert` her iki platformda da zaten yerel diyalog çiziyor
+      (iOS alert, Android Material) — özel bir bileşen yazmak platform
+      yerelliğini **azaltırdı**, bu yüzden yazılmadı.
+
+      Onay butonu "Tamam" değil **fiil** taşıyor ("Reddet", "İptal et",
+      "Kaldır"), böylece kullanıcı ne olacağını okumadan da görüyor.
+
+      Eklendiği yerler — hepsinin ortak özelliği geri dönüşü olmaması:
+      - Katılım isteğini reddet (kural yalnızca `pending → rejected`'a izin
+        veriyor, geri alınamaz)
+      - Ödeme bildirimini reddet (aynı kısıt; mesajda üye adı ve tutar var)
+      - PT randevusunu iptal et (arayüzde iptali geri alma yolu yok)
+      - Programdan egzersiz kaldır (builder anında kaydediyor)
+
+      **Bilinçli olarak eklenmediği yerler:** ders rezervasyonu iptali
+      (`AGENTS.md` bunu açıkça "geri alınabilir, onay sorma" diye
+      tanımlıyor, zaten Snackbar veriyor) ve takvim paylaşımını kaldırma
+      (tek dokunuşla geri verilebilen bir anahtar). Her şeye onay koymak,
+      insanları okumadan kapatmaya alıştırır — asıl onayları da işe
+      yaramaz hale getirir.
+
+- [ ] **D0-3 · Tab bar iki platformda da yabancı.**
+      Özel `TabBar` bileşeni her iki platformda aynı görünüyor. iOS'ta blur'lu
+      alt sekme çubuğu, Android'de Material 3 `NavigationBar` (aktif göstergesi
+      "pill" şeklinde) beklenir.
+      **İş:** Platform-koşullu tab bar veya en azından iOS'ta
+      `expo-blur` ile yarı saydam zemin, Android'de M3 aktif gösterge.
+
+- [x] **D0-4 · Haptic geri bildirim tutarsız.**
+      Yalnızca check-in ve antrenman set tamamlamada var. Buton basışları,
+      seçim değişiklikleri, hata durumları sessiz.
+      **İş:** Haptic haritası tanımla: seçim = `selectionAsync`, başarı =
+      `notificationAsync(Success)`, hata = `notificationAsync(Error)`,
+      birincil aksiyon = `impactAsync(Medium)`.
+
+      **Çözüldü (19 Ağustos 2026).** `src/utils/haptics.ts` →
+      `hapticSelection` · `hapticAction` · `hapticSuccess` · `hapticError`.
+
+      Ekranlara tek tek değil **ortak bileşenlere** bağlandı, asıl yeri
+      orası: `Button` (ghost → seçim, dolu → aksiyon, çünkü ghost genelde
+      geri adım), `Chip`, `MonthCalendar` gün seçimi, `Stepper`. Böylece
+      yeni bir ekran hiçbir şey yapmadan doğru davranışı alıyor.
+
+      Mevcut üç dağınık çağrı (check-in, antrenman seansı, stepper) da bu
+      söz dağarcığına taşındı — aynı dokunuş ekrana göre farklı hissettiği
+      sürece bu cila değil, tutarsızlık olarak okunuyordu.
+
+      Hepsi ateşle-unut: web'de yok, Taptic Engine'i olmayan cihazlarda
+      sessizce yok sayılıyor ve eşlik ettiği işlemi asla geciktirmiyor.
+
+- [x] **D0-5 · Klavye yönetimi eksik.**
+      Form ekranlarında (`register`, `gym-code`, `create-gym`, ödeme ekleme)
+      `KeyboardAvoidingView` yok. Klavye açılınca alanlar ve butonlar
+      kapanabiliyor. Klavyeyi kapatmak için boşluğa dokunma da yok.
+      **İş:** Tüm form ekranlarına klavye kaçınma + dışarı dokununca kapatma.
+
+      **Çözüldü (19 Ağustos 2026).** Metin girişi olan **7 ekranın
+      hiçbirinde** klavye yönetimi yoktu. İki bileşen eklendi:
+
+      - `FormScreen` — `<Screen>` yerine geçer; `KeyboardAvoidingView` +
+        kaydırma + dışarı dokununca kapatma. `register`, `gym-code`,
+        `create-gym`, `checkin` bunu kullanıyor.
+      - `KeyboardAwareScroll` — zaten kaydırılan ekranlar için `ScrollView`
+        yerine geçer. `member/payments`, `admin/payments`, `admin/classes`.
+
+      Üç ayrıntı önemliydi:
+      - `behavior` yalnızca iOS'ta `padding`; Android pencereyi kendi
+        yeniden boyutlandırdığı için orada vermek payı iki kez sayar.
+      - `keyboardShouldPersistTaps="handled"` olmadan ilk dokunuş sadece
+        klavyeyi kapatır, butonlar **iki kez** basılmayı gerektirirdi.
+      - Sayısal klavyede `return` tuşu yok; dışarı dokunma/sürükleme
+        olmadan kapatmanın tek yolu sistem jestiydi ve kimse denemez.
+
+      Yol üstünde: check-in ekranının kilit mesajı eskimişti — ekran artık
+      `canCheckIn` ile korunuyor ama metin "Salon yönetici oturumu gerekli"
+      diyordu. Yetki verilmemiş bir antrenöre yanlış bilgi veriyordu;
+      "Üye kabul yetkin yok — salon yöneticisi bu yetkiyi sana verebilir"
+      olarak düzeltildi.
+
+- [ ] **D0-6 · Güvenli alan (safe area) doğrulanmalı.**
+      `Screen` bileşeni var ama çentikli/dinamik adalı cihazlarda ve Android
+      gesture navigation barında alt/üst boşlukların doğru olduğu her ekranda
+      test edilmemiş.
+
+---
+
+### D1 — Bilgi mimarisi ve akış (UX)
+
+- [ ] **D1-1 · Üye alt sekmeleri fazla ve dengesiz.**
+      5 sekme: Bugün, Üye Kartım, Dersler, Program, Gelişim. "Üye Kartım"
+      aslında bir **eylem** (check-in), sekme değil — ve tam ekran bir QR'dan
+      ibaret. iOS'ta bu tür şeyler genelde ana ekranda öne çıkan bir kart veya
+      hızlı erişim olur.
+      **İş:** Ya "Üye Kartım"ı Bugün ekranında büyük bir birincil karta
+      dönüştür (sekmeyi 4'e indir), ya da sekme kalacaksa ekranı zenginleştir
+      (bugünkü giriş durumu, son girişler, üyelik bitiş tarihi).
+
+- [ ] **D1-2 · "Bugün" ekranı zayıf.**
+      Sadece bugünün dersi + haftalık antrenman halkası. Üyenin gerçekten
+      merak ettikleri yok: bir sonraki PT randevum, ödeme durumum, üyeliğim ne
+      zaman bitiyor, bu hafta kaç kez geldim.
+      **İş:** Bugün ekranını gerçek bir "gösterge paneli" olarak yeniden
+      kurgula. Öncelik sırası: bugünkü eylem → yaklaşan → durum.
+
+- [ ] **D1-3 · Boş durumlar (empty states) yetersiz.**
+      Çoğu ekran boşken tek satır gri metin gösteriyor. Boş durum, ürünün en
+      öğretici anıdır — ne olduğunu, neden boş olduğunu ve bir sonraki adımı
+      söylemeli.
+      **İş:** Her liste için illüstrasyon/ikon + başlık + açıklama + birincil
+      eylem içeren tutarlı bir `EmptyState` bileşeni.
+
+- [ ] **D1-4 · Yükleniyor durumları yok.**
+      Ekranlar veri gelene kadar boş görünüyor; kullanıcı "boş mu, yükleniyor
+      mu" ayırt edemiyor. `states.tsx` galerisinde tasarlanmış ama gerçek
+      ekranlarda kullanılmamış.
+      **İş:** İskelet (skeleton) yükleyiciler — özellikle liste ekranlarında.
+      `plan.md` P2-1 (hata durumu) ile birlikte `loading | ready | empty | error`
+      dört durumu her liste için netleştir.
+
+- [ ] **D1-5 · Geri bildirim (toast/snackbar) tutarsız.**
+      Bazı ekranlarda `setSnack` ile özel bildirim, bazılarında `setError` ile
+      satır içi kırmızı metin, bazılarında hiçbir şey.
+      **İş:** Tek bir `Toast`/`Snackbar` deseni; hata mesajları için tek stil.
+
+- [ ] **D1-6 · Antrenör "Üyeler" listesinde arama/sıralama yok.**
+      50+ üyeli bir salonda liste kullanılamaz hale gelir.
+      **İş:** Arama alanı + sıralama (ada göre / son aktiviteye göre).
+
+---
+
+### D2 — Görsel dil
+
+- [ ] **D2-1 · Emoji ikonlar üretim kalitesinde değil.**
+      Hâlâ birçok yerde emoji ikon var: `🔒` (yetki ekranları), `📈` `📋` `📷`
+      `⏳` `🎉` `📞`, `⠿` (sürükleme tutamağı), `⇄`, `✓`/`✕` metin karakterleri.
+      Emoji platformdan platforma farklı render olur, tema rengini almaz,
+      ölçeklenmez. (Profil ekranındaki `👤` iOS'ta alakasız mavi bir ikon
+      olarak çıkıyordu — bunu zaten baş harf avatarıyla değiştirdik.)
+      **İş:** Tüm emojileri `@expo/vector-icons` (Ionicons) veya SF Symbols /
+      Material Symbols ile değiştir. Tek bir ikon seti seç ve ona sadık kal.
+
+- [ ] **D2-2 · Marka logosu uygulamada hiç görünmüyor.**
+      `branding.logoUrl` veri modelinde var, yönetici yükleyebiliyor — ama
+      yalnızca yöneticinin kendi ayarlar ekranındaki küçük önizlemede
+      render ediliyor. Üye kartında, sekme başlıklarında, splash sonrasında
+      hep "salon adının ilk harfi" olan renkli kare gösteriliyor.
+      Beyaz etiket ürünün ana vaadi bu ve çalışmıyor.
+      **İş:** Logo render eden ortak bir `TenantLogo` bileşeni (yoksa baş harfe
+      düşen). Üye kartı, Bugün ekranı başlığı ve onboarding'de kullan.
+
+- [ ] **D2-3 · Yükseklik/derinlik (elevation) sistemi yok.**
+      Her kart aynı `surf` + 1px `line` kombinasyonu. Hiyerarşi yok; birincil
+      kart ile ikincil kart görsel olarak eşit.
+      **İş:** 2-3 seviyeli yükseklik ölçeği (iOS'ta yumuşak gölge, Android'de
+      M3 elevation tonu).
+
+- [ ] **D2-4 · Renk kontrastı doğrulanmamış.**
+      `sub` rengi (`#9CA3AF`) koyu temada `bg0` üzerinde ~4.9:1 — küçük metin
+      için sınırda. `label` boyutu 11pt ve `tone="sub"` çok yaygın kullanılıyor.
+      **İş:** Tüm token kombinasyonlarını WCAG AA'ya (normal metin 4.5:1,
+      büyük metin 3:1) göre doğrula; `derivePalette()` çıktısı için de otomatik
+      kontrol ekle — kullanıcı açık sarı bir marka rengi seçerse palet
+      okunamaz hale gelebilir.
+
+- [ ] **D2-5 · Tipografi ölçeği dar.**
+      34/28/22/17/13/11 — 17 ile 13 arasında boşluk var, çoğu ikincil metin
+      13pt'ye sıkışıyor ve `sub` rengiyle birleşince okunabilirlik düşüyor.
+      **İş:** 15pt ara basamak ekle; `label` (11pt) yalnızca gerçek etiketler
+      için kullanılsın, gövde metni olarak kullanılmasın.
+
+- [ ] **D2-6 · Hareket/animasyon neredeyse yok.**
+      `react-native-reanimated` bağımlılıkta var ama kullanılmıyor.
+      Ekran geçişleri, liste öğesi giriş/çıkışları, genişleyen satırlar
+      (`▾`/`›`) anlık — mekânsal süreklilik hissi yok.
+      **İş:** Ölçülü hareket dili: liste öğeleri için `Layout` animasyonu,
+      genişleme için yükseklik animasyonu, ekran geçişleri platform varsayılanı.
+      Süre 200-300ms, `Reduce Motion` erişilebilirlik ayarına saygı.
+
+---
+
+### D3 — Erişilebilirlik
+
+- [ ] **D3-1 · Ekran okuyucu etiketleri yok.**
+      Hiçbir bileşende `accessibilityLabel`, `accessibilityRole`,
+      `accessibilityState` yok. QR kart, takvim ızgarası, stepper'lar ve ikon
+      butonları ekran okuyucu için tamamen anlamsız.
+      **İş:** Tüm etkileşimli bileşenlere erişilebilirlik özellikleri.
+      Özellikle: takvim günleri ("19 Ağustos Salı, 3 randevu, seçili"),
+      stepper ("Ağırlık, 40 kilogram, artır/azalt"), ikon butonları.
+
+- [ ] **D3-2 · Dinamik yazı tipi boyutu desteklenmiyor.**
+      Tüm boyutlar sabit `fontSize`. Kullanıcı sistem yazı boyutunu
+      büyütürse arayüz uyum sağlamıyor — iOS'ta yaygın bir erişilebilirlik
+      beklentisi.
+      **İş:** `PixelRatio.getFontScale()` ile ölçekleme veya en azından
+      kritik metinlerde `allowFontScaling` davranışını doğrula; taşma
+      durumlarını test et.
+
+- [ ] **D3-3 · Renk tek başına anlam taşıyor.**
+      Ödeme durumu, program durumu, randevu durumu yalnızca renkle ayrılıyor
+      (yeşil/turuncu/gri). Renk körlüğü olan kullanıcı ayırt edemez.
+      **İş:** Duruma ikon veya metin etiketi eşlik etsin.
+
+---
+
+### D4 — Ekran bazlı notlar
+
+| Ekran | Durum | İş |
+|---|---|---|
+| `onboarding/register` | İyi | Sosyal giriş butonları platform kılavuzlarına uygun (Apple: resmi buton stili tercih edilir) |
+| `onboarding/gym-code` | Orta | QR tarama "yakında" olarak devre dışı — ya tamamla ya kaldır |
+| `onboarding/pending` | Orta | "📞 Salonu ara" butonu hiçbir şey yapmıyor — salon telefonuna bağla veya kaldır |
+| `member/index` (Bugün) | Zayıf | D1-2 |
+| `member/card` | Orta | Logo (D2-2), çevrimdışı çalışma (plan.md P2-2) |
+| `member/classes` | Orta | Rezervasyon durumu görünürlüğü |
+| `member/workout/session` | İyi | Yeni düzen (alt sabit zamanlayıcı + tek birincil aksiyon) doğru |
+| `member/progress` | İyi | Yeni düzen anlamlı; grafik etkileşimi (dokunma ile değer) eklenebilir |
+| `member/payments` | Orta | Boş/yükleniyor durumları |
+| `trainer/index` (Üyeler) | Orta | Arama yok (D1-6); dokununca taslak yaratma hatası (plan.md P2-4) |
+| `trainer/calendar` | İyi | Yeni ay ızgarası + gün seçimi doğru; hareket ve erişilebilirlik eksik |
+| `trainer/programs` | İyi | Yeni eklendi |
+| `trainer/profile` | İyi | Yeni düzen; istatistik kartları çalışıyor |
+| `admin/*` | Zayıf | Bu denetimde ele alınmadı — ayrı bir tur gerekiyor |
+
+---
+
+## Claude Design'a verilecek brief özeti
+
+**Bağlam.** GymEntra, spor salonları için beyaz etiketli bir üyelik/antrenman
+yönetim uygulaması. Üç rol: üye, antrenör, salon yöneticisi. Her salon kendi
+markasını (ad, logo, birincil renk, açık/koyu tema) belirliyor; uygulama bu
+renkten tüm paleti runtime'da türetiyor.
+
+**Kısıtlar.**
+- Yalnızca telefon, yalnızca dikey. Tablet v1'de yok.
+- Koyu tema birincil, açık tema desteklenmeli.
+- Palet tek bir marka renginden türetilmeli — sabit hex kullanılamaz.
+- React Native / Expo SDK 57. Native modül eklemek yeni derleme demek;
+  mümkünse mevcut bağımlılıklarla çözülmeli.
+
+**İstenen çıktılar (öncelik sırasıyla).**
+1. **Platform yerel navigasyon ve etkileşim deseni** (D0) — geri, diyalog,
+   tab bar, haptic, klavye.
+2. **Durum sistemi** (D1-3, D1-4, D1-5) — boş / yükleniyor / hata / hazır
+   dördü için tutarlı bileşenler.
+3. **İkon sistemi** (D2-1) — emojilerin tamamının yerine geçecek tek set.
+4. **Marka logosu entegrasyonu** (D2-2) — beyaz etiketin görünür olması.
+5. **Erişilebilirlik geçişi** (D3).
+6. **Hareket dili** (D2-6).
+7. **Üye "Bugün" ekranı yeniden kurgusu** (D1-2) ve **sekme yapısı kararı**
+   (D1-1).
+
+**Değiştirilmemesi gerekenler.**
+- Anlamsal token mimarisi (`tokens.ts`) — doğru kurulmuş, üzerine inşa edilmeli.
+- Runtime palet türetme mantığı (`derivePalette`).
+- Antrenman seansı ve takvim ekranlarının yeni düzeni.
