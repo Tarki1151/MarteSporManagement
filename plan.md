@@ -942,7 +942,7 @@ ayıracı wart'ını (P1-2) tekrarlamak olur. **Yeni adlar:** `gym_packages`,
 
 ---
 
-### [ ] PKG-1 · Hak tabanlı paket kataloğu
+### [x] PKG-1 · Hak tabanlı paket kataloğu
 
 **`gym_packages`**
 
@@ -990,6 +990,34 @@ geriye dönük olarak satılmış hakkı değiştirmek olurdu.
 
 **Kurallar:** okuma = kiracı personeli + kiracı üyesi (üye ne alabileceğini
 görsün), yazma = kiracı yöneticisi + yukarıdaki kilit.
+
+---
+
+**Çözüldü (20 Ağustos 2026).** `types.ts` → `convert.ts` → `packageRepo.ts` →
+`firestore.rules` (78 test, +8) → `firestore.indexes.json` → `SCHEMA.md` →
+`admin/packages.tsx` (katalog listesi) + `admin/package-form.tsx`
+(oluştur/düzenle).
+
+Kilit rule tarafında da zorlanıyor: `activeAssignmentCount > 0` iken kural
+yalnızca `isActive`/`sortOrder` değişimine izin veriyor, içerik alanları
+donuyor. `activeAssignmentCount`'ı istemcinin **hiçbir koşulda** hareket
+ettirememesi ayrıca test edildi (kilitli/kilitsiz ikisinde de) — `member_packages`
+henüz yok, o yüzden sayaç şu an her zaman 0 ve gerçek kilit PKG-2'nin Cloud
+Function'ı devreye girince anlam kazanacak; kural yine de bugünden doğru.
+
+Yeni `confirmAction` eklendi (`utils/confirm.ts`) — `confirmDestructive`'in
+kırmızı olmayan kardeşi. Yeni sürüm oluşturmak yıkıcı değil (hiçbir şey
+kaybolmuyor) ama sonucu görmeden onaylanmamalı; kırmızı buton burada yanlış
+mesaj verirdi.
+
+Yeni salon açılışına (`createTenantWithOwner`) `seedDefaultPackages` bağlandı
+— Silver/Gold/Platinium tohum olarak yazılıyor, fiyatları 0 (admin
+doldurmalı). Uygulama kodunda **hiçbir yerde** isimle dallanma yok; ekranlar
+yalnızca `entitlements` alanlarını soruyor.
+
+**Simülatörde doğrulanmadı** — ekrana ulaşmak oturum açmayı gerektiriyor ve
+simülatörde dokunmalar güvenilir kaydolmuyor. Bundle'ın hatasız yüklendiği
+(kayıt ekranı) doğrulandı, form akışı cihazda test edilmeli.
 
 ---
 
