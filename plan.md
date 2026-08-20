@@ -868,172 +868,175 @@ Takvim + Profil sekmeleri aynı anda mount olduğu için üye listesi tek başı
 
 ## PKG — Üyelik paketleri, haklar ve randevulu ders kullanımı (20 Ağustos 2026)
 
-### Salon sahibinin tanımı
+### Ürün tanımı
 
 **İki satış birimi, aynı anda tutulabilir.**
 
 | Birim | Örnek | Ne verir |
 |---|---|---|
-| **Süreli üyelik** (`membership`) | 1 ay, 3 ay, 6 ay, 1 yıl, 2 yıl | Seviyesine göre haklar |
+| **Süreli üyelik** (`membership`) | 1 / 3 / 6 ay, 1 / 2 yıl | Seviyesine göre haklar |
 | **Ders paketi** (`lessons`) | 8, 12, 20 ders | Antrenörle önceden randevulanmış özel ders |
 
 **Üç seviye — ama seviye bir tip değil, hazır şablon:**
 
-| Seviye | Salon kullanımı | Grup dersleri | Özel ders |
+| Seviye | Salon | Grup dersi | Özel ders |
 |---|---|---|---|
 | Silver | ✓ | — | — |
-| Gold | ✓ | ✓ | — |
-| Platinium | ✓ | ✓ | Her 3 ayda 12 ders ücretsiz |
+| Gold | ✓ | sınırsız | — |
+| Platinium | ✓ | sınırsız | 3 ayda bir 12 ders |
 
-**Kritik gereksinim:** admin bu içerikleri değiştirebilmeli — hak ekleyip
-çıkarabilmeli, sayıları artırıp azaltabilmeli. Dolayısıyla Silver/Gold/
-Platinium **koda gömülü tip olamaz**; paketin taşıdığı **hak kümesi**
-(entitlement) esas, seviye adları yalnızca yeni salon açılırken yüklenen
-varsayılan şablonlardır.
-
-**Birleşim ve erişim kuralları:**
-- Süreli üyelik ders hakkı vermez (Platinium'un periyodik hediyesi hariç).
+**Erişim kuralları:**
+- Süreli üyelik özel ders hakkı vermez (Platinium'un periyodik hediyesi hariç).
   6 aylık Gold üyesi ayrıca 8 ders satın alabilir.
-- Yalnızca ders paketi olan üye salona **sadece randevusu olan günlerde**
-  girer — o gün **gün boyu** kalabilir ve Silver gibi kendi başına çalışır.
+- Yalnızca ders paketi olan üye salona **sadece randevulu günlerde** girer;
+  o gün **gün boyu** kalır ve Silver gibi kendi başına çalışır.
 - Dondurulmuş paket, dondurma süresince hiçbir hak vermez.
+
+---
+
+### Tasarımı yöneten dört karar
+
+Bu fazın tamamı dört karardan türüyor. Maddeler bunların uygulanışı.
+
+**1. Hak (entitlement) esas, seviye değil.**
+Admin paket içeriğini değiştirebilecekse "Silver/Gold/Platinium" koda gömülü
+tip olamaz. Paketin taşıdığı hak kümesi esastır; seviye adları yalnızca yeni
+salon açılırken yazılan tohum veridir. **Kodda `if (tier === 'gold')` gibi bir
+dal hiçbir yerde olmayacak** — yoksa admin'in içeriği değiştirmesi anlamsızlaşır.
+
+**2. Satılan şey donar, katalog akar.**
+Atama anında haklar, fiyat ve politikalar `member_packages`'a **kopyalanır**;
+ayrıca aktif ataması olan katalog kaydı **kilitlenir**. İkisi birlikte gerekir:
+kopya satılmış hakkı korur, kilit katalog geçmişini okunur tutar.
+
+**3. Tek kota defteri.**
+Özel ders kredisi, Platinium'un periyodik hediyesi ve (açılırsa) kotalı grup
+dersi **aynı defterde** yaşar. Tek tüketim mekanizması, tek callable, tek iade
+yolu — iki ayrı sayaç mekanizması yazmaktansa.
+
+**4. Sayan her şey callable'da.**
+Firestore kuralları **sayamaz**. Kalan kredi, dondurma kotası, promosyon
+kullanımı, aktif atama sayısı — hepsi transaction içinde Cloud Function
+tarafından yürütülür. Kural yalnızca "bu hak var mı" sorusunu yanıtlar.
+(Aynı kısıt `tenants.activeMemberCount` için de geçerliydi.)
+
+---
 
 ### Mevcut durumdaki boşluklar
 
 Bu iş "paket koleksiyonu ekle"den ibaret değil; dört kavram uygulamada **hiç yok**:
 
 1. **Paket ve hak kavramı yok.** `tenant_memberships` yalnızca aktif/pasif biliyor.
-2. **Grup dersi hakkı denetlenmiyor.** `classes` rezervasyonu bugün herkese açık;
-   Gold/Platinium ayrımının yaptırımı olacak yer burası ve hiç yok.
-3. **Antrenör müsaitliği yok.** `pt_sessions` yalnızca *alınmış* randevuyu tutuyor.
-   "Salı 15:00'te xx antrenörü boş mu?" sorusunun veri karşılığı yok.
+2. **Grup dersi hakkı denetlenmiyor.** `classes` rezervasyonu bugün herkese açık.
+3. **Antrenör müsaitliği yok.** `pt_sessions` yalnızca *alınmış* randevuyu tutuyor;
+   "salı 15:00'te xx antrenörü boş mu?" sorusunun veri karşılığı yok.
 4. **Üye randevu alamıyor.** `createPtSession` yalnızca antrenör takviminden
    çağrılıyor; kural `trainerId == request.auth.uid` ile üyeyi dışarıda bırakıyor.
 
-### Koleksiyon adlandırması — legacy çakışması
-
-Aynı Firebase projesinde legacy `packages` ve `assigned_packages` **hâlâ duruyor**
-(WEB-5 bekliyor). Bu adları yeniden kullanmak, `payments` için yaşanan
-iki-match-bloğu + `!('tenantId' in resource.data)` ayıracı wart'ını (P1-2)
-tekrarlamak olur. **Yeni adlar:** `gym_packages`, `member_packages`,
-`member_lesson_credits`, `trainer_availability`.
+**Koleksiyon adlandırması.** Legacy `packages` ve `assigned_packages` aynı
+projede **hâlâ duruyor** (WEB-5 bekliyor). Bu adları yeniden kullanmak
+`payments` için yaşanan iki-match-bloğu + `!('tenantId' in resource.data)`
+ayıracı wart'ını (P1-2) tekrarlamak olur. **Yeni adlar:** `gym_packages`,
+`member_packages`, `member_credits`, `promotions`,
+`package_change_requests`, `trainer_availability`.
 
 ---
 
 ### [ ] PKG-1 · Hak tabanlı paket kataloğu
 
-**`gym_packages`** — salonun sattığı paketler.
+**`gym_packages`**
 
 | Alan | Tip | Not |
 |---|---|---|
 | `tenantId` | string | |
-| `name` | string | "Gold", "8 Ders" — serbest metin, seviye adı zorunlu değil |
+| `name` | string | "Gold", "8 Ders" — serbest metin |
 | `kind` | `'membership' \| 'lessons'` | |
 | `price` | number | |
 | `durationDays` | number? | `membership` için zorunlu |
 | `lessonCount` / `lessonValidityDays` | number? | `lessons` için |
 | `entitlements` | map | Aşağıda |
-| `freezePolicy` | map? | `{ minDays: 15, maxCount: 2 }` — `membership` için |
-| `isActive` | boolean | Katalogdan kaldırılan paket **silinmez**; atanmışlar bozulmasın |
-| `sortOrder` / `createdAt` | | |
+| `freezePolicy` | map? | `{ minDays, maxCount }` — `membership` için |
+| `activeAssignmentCount` | number | Cloud Function tutar; kilidin dayanağı |
+| `supersedesId` | string? | Yeni sürümse eskiye bağ |
+| `isActive` / `sortOrder` / `createdAt` | | |
 
-**`entitlements` — paketin verdiği haklar:**
+**Haklar:**
 
 ```
 {
   gymAccess:    true,
-  groupClasses: true,
-  ptLessons:    { count: 12, periodDays: 90 }   // yoksa hak yok
+  groupClasses: { unlimited: true },            // veya { count: 4, periodDays: 30 }
+  ptLessons:    { count: 12, periodDays: 90 }   // alan yoksa hak yok
 }
 ```
 
-Silver = `{gymAccess}`, Gold = `+groupClasses`, Platinium = `+ptLessons`.
-Admin her alanı açıp kapatabilir, `count`/`periodDays` değerlerini
-değiştirebilir. **Yeni bir hak eklemek yalnızca bu map'e alan eklemek
-demek** — paket tipi çoğaltmak gerekmez, yaptırım noktaları hakkı adıyla
-sorar.
-
-**Varsayılan şablonlar kod sabiti değil, tohum veridir.** Yeni salon
-açıldığında `gym_packages`'a üç doküman yazılır; o andan sonra salonun malı.
-Kodda `if (tier === 'gold')` gibi bir dal **hiçbir yerde olmayacak** —
-yoksa admin'in içeriği değiştirmesi anlamsızlaşır.
-
-**Kurallar:** okuma = kiracı personeli + kiracı üyesi (üye ne satın
-alabileceğini görsün), yazma = kiracı yöneticisi.
+Kotalı haklar tek şekli paylaşır (`{count, periodDays}`), böylece tüketim tek
+defterden yürür (karar 3). `{unlimited: true}` **hiç kredi kaydı açmaz** — o
+durumda rezervasyon bugünkü kadar ucuz kalır.
 
 #### Satılmış paket değişmez — sürümleme
 
-Bir pakete **aktif atama varken içeriği değiştirilemez.** Fiyat, süre, haklar
-ve dondurma politikası kilitlenir. Gerekçe basit: üye belirli bir içeriği
-satın aldı; kataloğu düzenlemek geriye dönük olarak satılmış hakkı değiştirmek
-anlamına gelir.
+Aktif ataması olan pakette fiyat, süre, haklar ve dondurma politikası
+**kilitlidir**. Üye belirli bir içeriği satın aldı; kataloğu düzenlemek
+geriye dönük olarak satılmış hakkı değiştirmek olurdu.
 
-- `activeAssignmentCount` alanı `member_packages` yazımlarını izleyen Cloud
-  Function tarafından tutulur. **Firestore kuralları sayamaz**, bu yüzden
-  denormalize sayaç zorunlu (aynı gerekçe `tenants.activeMemberCount` için de
-  geçerliydi).
-- Sayaç `0` iken paket serbestçe düzenlenir.
-- Sayaç `> 0` iken kural yalnızca `isActive` ve `sortOrder` değişimine izin
-  verir. İçeriği değiştirmek isteyen admin **yeni sürüm** oluşturur:
-  `supersedesId` ile eskiye bağlanır, eski paket `isActive:false` olur
-  (artık satılmaz), mevcut atamalar bozulmadan devam eder.
-- Arayüz bunu bir engel gibi değil, akış gibi sunar: "Bu pakete sahip 12 aktif
-  üye var. Değişiklikler yeni sürüm olarak kaydedilecek."
+- `activeAssignmentCount == 0` → paket serbestçe düzenlenir.
+- `> 0` → kural yalnızca `isActive` ve `sortOrder` değişimine izin verir.
+  İçerik değiştirmek isteyen admin **yeni sürüm** oluşturur: `supersedesId`
+  ile eskiye bağlanır, eski kayıt `isActive:false` olur (artık satılmaz),
+  mevcut atamalar bozulmadan devam eder.
+- Arayüz bunu engel değil akış olarak sunar: *"Bu pakete sahip 12 aktif üye
+  var. Değişiklikler yeni sürüm olarak kaydedilecek."*
 
-`member_packages` zaten atama anında hakları **kopyalıyor** (PKG-2). Sürümleme
-onun yerine geçmez, tamamlar: kopya satılmış hakkı korur, sürümleme katalogun
-geçmişini okunur tutar.
+**Kurallar:** okuma = kiracı personeli + kiracı üyesi (üye ne alabileceğini
+görsün), yazma = kiracı yöneticisi + yukarıdaki kilit.
 
 ---
 
-### [ ] PKG-2 · Paket atama ve ders kredisi defteri
+### [ ] PKG-2 · Atama ve kota defteri
 
-**`member_packages`** — üyeye atanmış paket.
+**`member_packages`**
 
 | Alan | Tip | Not |
 |---|---|---|
 | `tenantId` / `memberId` / `memberName` | | `memberName` denormalize |
-| `packageId` / `packageName` / `kind` / `price` | | Atama anında **kopyalanır** |
-| `entitlements` | map | **Kopyalanır** — katalog sonradan değişse de satılmış paket değişmez |
-| `freezePolicy` | map | Kopyalanır (aynı gerekçe) |
-| `startsAt` / `endsAt` | Timestamp | |
-| `frozenDays` | number | Dondurmalarla eklenen toplam gün; `endsAt` buna göre ötelenir |
-| `freezes` | array | `[{startsAt, endsAt, days, createdBy, createdAt}]` |
+| `packageId` / `packageName` / `kind` / `entitlements` / `freezePolicy` | | Atama anında **kopyalanır** |
+| `listPrice` / `finalPrice` | number | Promosyon uygulandıysa ikisi farklı |
+| `promotionId` / `promotionName` / `bonusDays` / `bonusLessons` | | PKG-5 |
+| `startsAt` / `endsAt` | Timestamp | `endsAt = startsAt + durationDays + bonusDays` |
+| `frozenDays` / `freezes` | | PKG-10 |
 | `status` | `'active' \| 'frozen' \| 'expired' \| 'cancelled'` | |
 | `paymentId` | string? | Ödeme defterine bağ |
 | `assignedAt` / `assignedBy` | | |
 
-**`member_lesson_credits`** — her ders bakiyesi, kaynağı ne olursa olsun.
+**`member_credits`** — her kota bakiyesi, türü ve kaynağı ne olursa olsun.
 
 | Alan | Tip | Not |
 |---|---|---|
 | `tenantId` / `memberId` | | |
-| `source` | `'purchase' \| 'entitlement'` | Satın alınan 8 ders / Platinium'un periyodik hediyesi |
+| `kind` | `'ptLesson' \| 'groupClass'` | Tek defter, iki hak türü |
+| `source` | `'purchase' \| 'entitlement'` | Satın alınan paket / periyodik hak |
 | `sourcePackageId` | string | `member_packages` dokümanı |
 | `total` / `used` | number | `used` istemciden **asla** yazılamaz |
 | `startsAt` / `expiresAt` | Timestamp | Periyodik hakta dönem sınırları |
 | `status` | `'active' \| 'exhausted' \| 'expired'` | |
 
-Bu ayrım işi çok basitleştiriyor: satın alınan ders paketi ile Platinium'un
-"her 3 ayda 12 ders"i **aynı defterde** yaşıyor. Randevu alırken krediler
-son kullanma tarihine göre sırayla (önce biteni önce) harcanır — üye
-hediyesini boşa harcamaz.
+Tüketimde krediler **son kullanma tarihine göre** sırayla harcanır (önce
+biteni önce) — üye hediyesini boşa harcamaz.
 
 Periyodik hakkı yenileyen **zamanlanmış Cloud Function** her dönem başında
-yeni kredi kaydı açar. Okuma anında da tarih kontrolü yapılır, fonksiyon
+yeni kredi kaydı açar. Okuma anında da tarih kontrolü yapılır: fonksiyon
 gecikse bile ekranda yanlış bakiye görünmez.
 
 **Index:** `tenantId + memberId + endsAt DESC`, `tenantId + status + endsAt ASC`
-(yaklaşan bitişler), `tenantId + memberId + status` (kredi).
+(yaklaşan bitişler), `tenantId + memberId + kind + status` (kredi).
 
-**Arayüz:** Salon ayarlarında katalog CRUD (hak anahtarlarıyla birlikte);
-admin üye satırından "Paket ata".
+**Arayüz:** Salon ayarlarında katalog CRUD (hak anahtarlarıyla); admin üye
+satırından "Paket ata".
 
 ---
 
 ### [ ] PKG-3 · Check-in'de erişim ve paket etiketi
-
-Check-in sonucu isim + **paket bilgisi** döndürür:
 
 ```
 { ok: true, name: 'Ayşe Şengül',
@@ -1043,23 +1046,22 @@ Check-in sonucu isim + **paket bilgisi** döndürür:
 ```
 
 **Karar sırası:**
-1. `status='active'` süreli üyelik bugünü kapsıyor ve `entitlements.gymAccess`
-   → `ok`, etiket paket adı.
-2. Değilse: kullanılabilir ders kredisi var **ve** bugün için `pt_sessions`
-   kaydı var → `ok`, etiket "8 Ders · bugün randevulu". O gün gün boyu
-   serbest.
+1. Aktif süreli üyelik bugünü kapsıyor ve `entitlements.gymAccess` → `ok`,
+   etiket paket adı.
+2. Değilse: kullanılabilir ders kredisi var **ve** bugüne `pt_sessions` kaydı
+   var → `ok`, etiket "8 Ders · bugün randevulu". O gün gün boyu serbest.
 3. Kredi var ama bugün randevu yok → `warn`, "Bugün randevusu yok".
 4. Paket dondurulmuş → `warn`, "Üyelik dondurulmuş (12 Eylül'e kadar)".
 5. Hiçbiri → `warn`, "Üyelik paketi yok".
 
 **Giriş engellenmez, uyarılır.** Kapıda ödeme yapıyor olabilir; kararı
-personel verir. Uyarı ekranında "Yine de kabul et" birincil aksiyon olarak
-durur, seçim `checkins.accessReason`'a yazılır — sonradan "kaç kişi paketsiz
-alındı" raporlanabilsin.
+personel verir. Uyarı ekranında "Yine de kabul et" birincil aksiyondur ve
+seçim `checkins.accessReason`'a yazılır — "kaç kişi paketsiz alındı"
+sonradan raporlanabilsin.
 
 Başarı ekranı istenen biçimde: **"Ayşe Şengül · Gold"**.
 
-**Performans notu:** Check-in'in sürtünme bütçesi ≤5 sn. Paket **doğrudan
+**Performans:** Check-in'in sürtünme bütçesi ≤5 sn. Paket **doğrudan
 okunacak**, `tenant_memberships` üzerine denormalize *edilmeyecek* —
 denormalize kopya süre dolduğunda kendi kendine bayatlar ve düzeltmesi
 zamanlanmış fonksiyon ister. Ölçülüp gecikme sorun çıkarırsa optimize edilir.
@@ -1068,112 +1070,123 @@ zamanlanmış fonksiyon ister. Ölçülüp gecikme sorun çıkarırsa optimize e
 
 ### [ ] PKG-4 · Grup dersi hakkının yaptırımı
 
-Bugün `classes` rezervasyonu **herkese açık** — Silver/Gold ayrımının
-yaptırımı olacak tek yer burası ve hiç yok. Bu madde olmadan seviyeler
-anlamsız kalır.
+Bugün `classes` rezervasyonu **herkese açık**; seviyeler bu madde olmadan
+anlamsız kalır. Üç yol, karmaşıklık yalnızca sonuncusunda:
 
-- `entitlements.groupClasses` yoksa rezervasyon butonu kilitli ve neden
-  yazılı: "Grup dersleri Gold ve üzeri paketlerde".
-- Yaptırım **kuralda da** olacak: `classes` update'inde `bookedUserIds`'e
-  eklenme, üyenin aktif paketinde bu hakkın bulunmasına bağlanır.
-  (İstemci kontrolü UX içindir, güvenlik değil — AGENTS.md §6.)
-- Kural bir `member_packages` `get()`'i gerektirir; deterministik doküman
-  kimliği (`{tenantId}_{memberId}_current`) ile tek okuma yeterli olacak
-  şekilde tasarlanmalı, aksi halde kural sorgu yapamaz.
+| Hak | Davranış |
+|---|---|
+| yok | Rezervasyon kilitli: "Grup dersleri Gold ve üzeri paketlerde" |
+| `{unlimited: true}` | **Bugünkü davranış aynen** — `bookedUserIds`'e tek yazma, kota yok, iptal serbest |
+| `{count, periodDays}` | Rezervasyon `member_credits` üzerinden (`kind:'groupClass'`) — PKG-8'in callable'ı ve PKG-11'in iade yolu **aynen yeniden kullanılır** |
+
+**Kotalı grup dersi altyapıda var, varsayılanda yok.** Silver'a aylık N ders
+iyi bir yukarı-satış aracı ve model destekliyor, ama iki gerçek bedeli var:
+(a) grup dersi iptali bugün "geri alınabilir, onay sorma" diye tanımlı
+(AGENTS.md §2) — kota gelince iptal anlamlı bir karar hâline gelir ve onay
+istemeye başlar; (b) Silver ders alabiliyorsa Gold'un değer önermesi zayıflar.
+Salon isterse katalogdan açar; tohum şablonda Silver = yalnızca `gymAccess`.
+
+**Yaptırım kuralda da olacak** — istemci kontrolü UX içindir, güvenlik değil
+(AGENTS.md §6). Kural bir `member_packages` `get()`'i gerektirir;
+**deterministik doküman kimliği** (`{tenantId}_{memberId}_current`) ile tek
+okuma yeterli olacak şekilde tasarlanmalı, çünkü kural sorgu yapamaz. Kotalı
+durumda kural yalnızca hakkın varlığını doğrular; **sayma işi callable'ın**.
 
 ---
 
 ### [ ] PKG-5 · Promosyonlar
 
-Dönemsel kampanyalar: yüzde indirim ya da ek süre ("1 yıl alana 1 ay hediye").
-
-Promosyon **paketi değiştirmez.** Katalog satılmış içeriği koruduğu için
-(PKG-1 sürümleme) kampanya ayrı bir kavram olmak zorunda; aksi halde her
-kampanya paketin yeni bir sürümünü doğururdu.
+Dönemsel kampanyalar: yüzde/tutar indirimi ya da ek süre ("1 yıl alana 1 ay
+hediye"). Promosyon **kataloğu değiştirmez** — katalog satılmış içeriği
+koruduğu için (karar 2) kampanya ayrı bir kavram olmak zorunda; aksi halde
+her kampanya paketin yeni bir sürümünü doğururdu.
 
 **`promotions`**
 
 | Alan | Tip | Not |
 |---|---|---|
-| `tenantId` | string | |
-| `name` | string | "Yıllık üyeliğe 1 ay hediye" |
+| `tenantId` / `name` | | "Yıllık üyeliğe 1 ay hediye" |
 | `kind` | `'percentDiscount' \| 'amountDiscount' \| 'bonusDays' \| 'bonusLessons'` | |
 | `value` | number | %20 · 500 ₺ · 30 gün · 4 ders |
 | `appliesTo` | array | `gym_packages` kimlikleri; boş = tümü |
 | `startsAt` / `endsAt` | Timestamp | Kampanya penceresi |
-| `maxRedemptions` / `redeemed` | number? | Sınırlıysa; `redeemed` istemciden yazılamaz |
+| `maxRedemptions` / `redeemed` | number? | `redeemed` istemciden yazılamaz |
 | `isActive` | boolean | |
 
-Atama sırasında admin uygun promosyonlardan birini seçer. Sonuç
-`member_packages`'a **düz olarak yazılır**:
-
-```
-promotionId, promotionName,
-listPrice: 6000, finalPrice: 4800,     // ne yazdığı açıkça görünsün
-bonusDays: 30, bonusLessons: 0
-```
-
-`endsAt` hesabı `durationDays + bonusDays`; ders kredisi `lessonCount +
-bonusLessons`. Promosyon sonradan bitse ya da silinse bile üyenin aldığı
-şey değişmez — fiyat ve haklar gibi bunlar da **kopyalanmış** değerdir.
+Atamada admin uygun promosyonlardan birini seçer; sonuç `member_packages`'a
+**düz değer olarak** yazılır (`listPrice`, `finalPrice`, `bonusDays`,
+`bonusLessons`). Promosyon sonradan bitse ya da silinse bile üyenin aldığı şey
+değişmez — fiyat ve haklar gibi bunlar da kopyalanmış değerdir.
 
 `redeemed` sayacı ve `maxRedemptions` kontrolü atama callable'ında,
-transaction içinde (kural sayamaz).
+transaction içinde (karar 4).
 
 **Arayüz:** Salon ayarlarında promosyon listesi; atama ekranında "Promosyon
-uygula" ve seçildiğinde **önce/sonra fiyat ile ek sürenin açıkça yazıldığı**
-bir özet.
+uygula" ve **önce/sonra fiyat ile ek sürenin açıkça yazıldığı** özet.
 
 ---
 
 ### [ ] PKG-6 · Üye onaylı paket değişikliği
 
-Salon sahibinin kuralı: **atanmış bir paketi tek taraflı değiştiremezsin.**
-Silver→Gold, Gold→Silver, promosyon süresi ya da ders paketi eklenmesi —
-hepsinde üye bilgilendirilmeli ve onaylamalı. Ücret değişiyorsa bu da
-açıkça görünmeli.
+**Atanmış paket tek taraflı değiştirilemez.** Silver↔Gold geçişi, promosyon
+süresi ya da ders paketi eklenmesi — hepsinde üye bilgilendirilmeli ve
+onaylamalı. Ücret değişiyorsa açıkça görünmeli.
 
 **`package_change_requests`**
 
 | Alan | Tip | Not |
 |---|---|---|
 | `tenantId` / `memberId` / `memberName` | | |
-| `kind` | `'upgrade' \| 'downgrade' \| 'promotion' \| 'addon'` | Yalnızca etiketleme; yaptırım karşılaştırmadan gelir |
-| `currentSummary` | map | Mevcut paket adı, hakları, fiyatı, `endsAt` |
-| `proposedSummary` | map | Önerilen paket adı, hakları, fiyatı, `endsAt` |
-| `priceDelta` | number | Pozitif = ek ücret, negatif = iade, 0 = değişmiyor |
+| `kind` | `'upgrade' \| 'downgrade' \| 'promotion' \| 'addon'` | Etiketleme; yaptırım karşılaştırmadan gelir |
+| `currentSummary` / `proposedSummary` | map | Ad, haklar, fiyat, `endsAt` |
+| `priceDelta` | number | + ek ücret · − iade · 0 değişmiyor |
+| `refundAmount` / `refundBasis` | number / string? | Aşağıdaki oransal hesap |
 | `note` | string? | Yöneticinin açıklaması |
-| `effectiveAt` | Timestamp | Onaylanırsa ne zaman geçerli |
+| `effectiveAt` / `expiresAt` | Timestamp | |
 | `status` | `'pending' \| 'approved' \| 'rejected' \| 'expired' \| 'cancelled'` | |
-| `createdBy` / `createdAt` / `respondedAt` / `expiresAt` | | |
+| `createdBy` / `createdAt` / `respondedAt` | | |
 
 **Akış:**
-1. Admin değişikliği hazırlar → istek `pending` olur. `member_packages`'a
+1. Admin değişikliği hazırlar → istek `pending`. `member_packages`'a
    **hiçbir şey yazılmaz.**
-2. Üyeye push gider (`sendPushToUser` altyapısı zaten var). Bugün ekranında
-   ve Hesabım'da öne çıkan bir kart belirir.
-3. Üye **iki paketi yan yana** görür: hangi hak gidiyor, hangi hak geliyor,
-   fiyat farkı ne, ne zaman başlıyor. Hak listesi `entitlements` map'inden
-   üretilir — özel metin yazılmaz, yoksa hak eklendiğinde ekran yalan söyler.
+2. Üyeye push gider (`sendPushToUser` altyapısı hazır). Bugün ekranında ve
+   Hesabım'da öne çıkan kart belirir.
+3. Üye **iki paketi yan yana** görür: giden hak, gelen hak, fiyat farkı,
+   iade tutarı, başlangıç tarihi. Hak listesi `entitlements` map'inden
+   üretilir — elle metin yazılmaz, yoksa yeni bir hak eklendiğinde ekran
+   yalan söyler.
 4. Onaylarsa `applyPackageChange` callable transaction'da: isteği `approved`
    yapar, eski `member_packages` kaydını kapatır, yenisini açar, promosyon
-   sayacını artırır, kredi defterini günceller.
+   sayacını artırır, kredi defterini günceller, iade gerekiyorsa ödeme
+   defterine kayıt düşer.
 5. Reddederse hiçbir şey değişmez; yöneticiye bildirim gider.
 6. `expiresAt` geçerse zamanlanmış fonksiyon `expired` yapar — süresiz
    bekleyen teklif, admin'in unuttuğu bir tuzağa dönüşür.
 
-**Kurallar:** üye kendi isteğini **okur ve yalnızca `status`'ü**
-`approved`/`rejected` yapabilir; başka hiçbir alana dokunamaz.
-`member_packages`'a üye asla yazamaz — değişikliği callable uygular.
+**Kurallar:** üye kendi isteğini okur ve **yalnızca `status`'ü**
+`approved`/`rejected` yapabilir; başka alana dokunamaz. `member_packages`'a
+üye asla yazamaz.
 
-**Onay gerektirmeyen tek durum: ilk atama.** Üye zaten kasada satın aldı;
-oraya onay ekranı koymak resepsiyonu kilitler. Ama ilk atama da üyeye
-bilgilendirme bildirimi gönderir.
+**İlk atama onay istemez**, yalnızca bilgilendirme bildirimi gönderir. Üye
+zaten kasada satın aldı; oraya onay ekranı koymak resepsiyonu kilitler.
 
-**Karar bekliyor:** Gold→Silver gibi bir düşürmede dönem ortasında **fiyat
-farkı iade edilecek mi**, yoksa yalnızca yenilemede mi geçerli olacak?
-`priceDelta` alanı ikisini de taşıyabilir ama politikayı salon sahibi
-belirlemeli.
+#### Düşürmede oransal iade
+
+Gold→Silver gibi bir düşüşte kalan süreye düşen fark **iade edilir**:
+
+```
+refundAmount = (eskiFinalPrice − yeniFinalPrice) × (kalanGün / toplamGün)
+kalanGün  = endsAt − effectiveAt   (dondurma günleri düşülmüş hâliyle)
+toplamGün = endsAt − startsAt
+```
+
+Tutar onay ekranında **hesabıyla birlikte** gösterilir ("kalan 92 / 180 gün").
+Onaylandığında `payments` defterine bir kayıt düşer.
+
+**`payments` şema eklentisi:** `kind: 'charge' | 'refund'` (varsayılan
+`charge`, mevcut kayıtlar geriye dönük uyumlu). Tutar her zaman pozitif
+kalır — negatif tutar raporlamayı kirletir. Para hareketi uygulama dışında
+gerçekleşir; burası **yalnızca defter**, bugünkü gibi.
 
 ---
 
@@ -1190,12 +1203,12 @@ Randevunun ön koşulu; şu anda hiç yok.
 | `exceptions` | array | `[{date, closed:true}]` veya o güne özel pencere |
 | `updatedAt` | Timestamp | |
 
-Boş `weekly` = müsaitlik **tanımlanmamış**. Bu durumda üyeye sessizce "boş
-slot yok" göstermek yerine antrenöre "çalışma saatlerini tanımla" uyarısı
-çıkar — sessiz boşluk, hatayı antrenöre değil üyeye yaşatır.
+Boş `weekly` = müsaitlik **tanımlanmamış**. Üyeye sessizce "boş slot yok"
+göstermek yerine antrenöre "çalışma saatlerini tanımla" uyarısı çıkar —
+sessiz boşluk, hatayı antrenöre değil üyeye yaşatır.
 
-Serbest slotlar = `weekly` − `exceptions` − o aralıktaki `pt_sessions`.
-İstemcide hesaplanır; ikisi de zaten okunuyor.
+Serbest slotlar = `weekly` − `exceptions` − o aralıktaki `pt_sessions`;
+istemcide hesaplanır, ikisi de zaten okunuyor.
 
 **Kurallar:** okuma = kiracı üyesi, yazma = antrenörün kendisi veya yönetici.
 **Arayüz:** Antrenör Profil → "Çalışma saatlerim".
@@ -1204,11 +1217,9 @@ Serbest slotlar = `weekly` − `exceptions` − o aralıktaki `pt_sessions`.
 
 ### [ ] PKG-8 · Üyenin randevu alması (kredi tüketimi)
 
-**Yazma yolu Cloud Function callable olacak, istemci değil.** Sebep: kalan
-kredi kontrolü ile randevu oluşturma **atomik** olmalı. Firestore kuralları
-sayamaz; iki eşzamanlı istek aynı son krediyi iki kez harcayabilir.
+`bookPtSessions({ tenantId, trainerId, slots: [Date] })` — callable, tek
+transaction (karar 4):
 
-`bookPtSessions({ tenantId, trainerId, slots: [Date] })` tek transaction'da:
 1. Üyenin kullanılabilir kredilerini son kullanma tarihine göre sıralar,
    toplam yeterli mi bakar.
 2. Her slot antrenörün müsaitlik penceresinde mi ve boş mu?
@@ -1216,24 +1227,22 @@ sayamaz; iki eşzamanlı istek aynı son krediyi iki kez harcayabilir.
 4. İlgili kredilerde `used` artırır; biten krediyi `exhausted` yapar.
 
 `pt_sessions`'a `creditId: string?` eklenir. **Null geçerli:** antrenörün
-pakete bağlı olmayan kendi kaydı (mevcut davranış korunur).
+pakete bağlı olmayan kendi kaydı (mevcut davranış korunur). Kural,
+`creditId` dolu dokümanların create'ini istemciye kapatır.
 
-**Kural değişikliği:** `creditId` dolu dokümanların create'i istemciye
-kapatılır — yalnızca callable (admin SDK) yazabilir.
-
-**Arayüz:** Üye → "Randevu al" → antrenör seç → takvim + o günün boş
-slotları → onay. `MonthCalendar` yeniden kullanılır.
+**Arayüz:** Üye → "Randevu al" → antrenör seç → takvim + o günün boş slotları
+→ onay. `MonthCalendar` yeniden kullanılır.
 
 ---
 
 ### [ ] PKG-9 · Seri randevu (haftalık tekrar)
 
-Salon sahibinin açıkça istediği kolaylık: *"antrenörün her cuma 08:00–09:00
-zamanını 8 ders için al."*
+Salon sahibinin istediği kolaylık: *"antrenörün her cuma 08:00–09:00 zamanını
+8 ders için al."*
 
-Akış: antrenör seç → haftalık slot seç → **kaç hafta?** (varsayılan = kalan
-kredi) → oluşacak tarihlerin **önizlemesi** → onay. Aynı `bookPtSessions`
-callable'ı `slots` dizisiyle çağrılır; atomiklik bedava gelir.
+Antrenör seç → haftalık slot seç → **kaç hafta?** (varsayılan = kalan kredi)
+→ oluşacak tarihlerin **önizlemesi** → onay. Aynı `bookPtSessions` callable'ı
+`slots` dizisiyle çağrılır; atomiklik bedava gelir.
 
 Önizleme kritik: çakışan ya da antrenörün izinli olduğu tarih işaretlenir ve
 kullanıcı **atlayıp devam edebilir** — 8 haftanın 3'ü doluyken tüm işlemi
@@ -1243,7 +1252,7 @@ reddetmek kullanıcıyı çıkmaza sokar.
 
 ### [ ] PKG-10 · Paket dondurma
 
-**Politika (varsayılan, paket bazında admin değiştirebilir):**
+**Varsayılan politika** (paket bazında admin değiştirebilir):
 
 | Üyelik süresi | Dondurma hakkı |
 |---|---|
@@ -1252,22 +1261,22 @@ reddetmek kullanıcıyı çıkmaza sokar.
 | 1 yıl | 2 kez |
 | 2 yıl | 4 kez |
 
-Her dondurma **en az 15 gün**. Dondurma süresi `endsAt`'e eklenir
-(`frozenDays`), yani üye hakkını kaybetmez, erteler.
+Her dondurma **en az 15 gün**; süre `endsAt`'e eklenir (`frozenDays`) — üye
+hakkını kaybetmez, erteler.
 
-**Yaptırım callable ile:** `freezeMemberPackage({ memberPackageId, startsAt,
-days })` — kota, minimum süre ve çakışma kontrolü tek yerde. Kuralda dizi
-uzunluğu saymak kırılgan; kota `freezePolicy.maxCount`'tan okunur ve
-**paket atanırken kopyalandığı için** politika sonradan değişse de satılmış
-pakete geriye dönük uygulanmaz.
+`freezeMemberPackage({ memberPackageId, startsAt, days })` callable: kota,
+minimum süre ve çakışma kontrolü tek yerde. Kota `freezePolicy.maxCount`'tan
+okunur ve **atama anında kopyalandığı için** politika sonradan değişse de
+satılmış pakete geriye dönük uygulanmaz.
 
 **Etkileri:**
-- Dondurma penceresinde `status='frozen'`; check-in uyarı verir (PKG-3/4).
-- Platinium'un periyodik ders hakkı dondurma boyunca **yenilenmez**; kredi
-  son kullanma tarihleri de aynı gün kadar ötelenir. Aksi halde üye
-  dondururken hediyesini kaybeder.
-- Aktif randevular otomatik iptal **edilmez** — donduran kişiye "bu tarihte
-  N randevun var" uyarısı çıkar, kararı o verir.
+- Dondurma penceresinde `status='frozen'`; check-in uyarı verir (PKG-3),
+  grup dersi rezervasyonu kapanır (PKG-4).
+- Periyodik ders hakkı dondurma boyunca **yenilenmez**; kredi son kullanma
+  tarihleri de aynı gün kadar ötelenir. Aksi halde üye dondururken hediyesini
+  kaybeder.
+- Aktif randevular otomatik iptal **edilmez** — donduran kişiye "bu tarihte N
+  randevun var" uyarısı çıkar, kararı o verir.
 
 ---
 
@@ -1281,7 +1290,8 @@ Kiracı ayarında `cancellationHours` (varsayılan 24):
 - Daha geç → kredi yanar; **yıkıcı işlem onayında bu açıkça yazar**.
 - Antrenör/yönetici iptali → her zaman iade.
 
-`cancelPtSession` callable, aynı transaction disiplini.
+`cancelPtSession` callable, aynı transaction disiplini. Kotalı grup dersi
+iptali de aynı yoldan geçer (PKG-4).
 
 ---
 
@@ -1289,38 +1299,32 @@ Kiracı ayarında `cancellationHours` (varsayılan 24):
 
 - **Üye:** Bugün ekranı ve Hesabım'da aktif paket — "Gold · 24 gün kaldı",
   "12 Ders · 5 kaldı · 12 Ekim'e kadar". (D1-1'de veri olmadığı için
-  yapılamayan şey buydu.)
-- **Admin:** üye satırında paket rozeti; "Yaklaşan bitişler" listesi
-  (`tenantId + status + endsAt` index'i bunun için); dondurmadaki üyeler.
+  yapılamayan şey buydu.) Bekleyen değişiklik teklifi öne çıkan kart olarak.
+- **Admin:** üye satırında paket rozeti; "Yaklaşan bitişler"
+  (`tenantId + status + endsAt` index'i bunun için); dondurmadaki üyeler;
+  bekleyen teklifler.
 - **Ödeme defteri bağı:** paket atarken "ödeme de kaydet" seçeneği `payments`
-  kaydı oluşturup `paymentId` ile bağlar (legacy `autoPaymentId` ile aynı
-  fikir, opsiyonel).
+  kaydı oluşturup `paymentId` ile bağlar.
 - **Süre dolumu:** `status`'ü güncel tutan günlük zamanlanmış fonksiyon.
 
 ---
 
-### Kalan açık soru
-
-**Grup dersleri ders kredisinden düşer mi?** Varsayım: hayır — grup dersi
-`groupClasses` hakkıyla sınırsız, özel ders kredisi yalnızca `pt_sessions`
-için. Farklıysa PKG-4'ten önce söylenmeli.
-
 ### Sıra ve bağımlılık
 
-PKG-1 → PKG-2 → PKG-3 birlikte **süreli üyeliği uçtan uca çalışır** hale
-getirir ve istenen check-in uyarısını verir. PKG-4 seviyeleri anlamlı kılar
-(onsuz Silver ile Gold arasında fark yok).
+**Blok 1 — süreli üyelik çalışır hâle gelir.** PKG-1 → PKG-2 → PKG-3 istenen
+check-in uyarısını verir. PKG-4 seviyeleri anlamlı kılar; onsuz Silver ile
+Gold arasında hiçbir fark yok, yani seviyeler satılamaz.
 
-PKG-5 (promosyon) ve PKG-6 (üye onayı) ikinci blok. PKG-6'nın **PKG-5'ten
-sonra** gelmesi bilinçli: onay ekranının göstereceği "ne değişiyor"
-özetinin promosyonu da kapsaması gerekir, sonradan eklemek ekranı ikinci kez
-yazdırır.
+**Blok 2 — ticari esneklik.** PKG-5 → PKG-6. PKG-6'nın PKG-5'ten sonra
+gelmesi bilinçli: onay ekranının "ne değişiyor" özeti promosyonu da
+kapsamalı, sonradan eklemek o ekranı ikinci kez yazdırır.
 
-Ders paketleri PKG-7 → PKG-8 olmadan satılabilir ama **kullanılamaz**, o
-yüzden o ikisi aynı blokta. PKG-9 saf kolaylık.
+**Blok 3 — ders paketleri kullanılabilir hâle gelir.** PKG-7 → PKG-8. Ders
+paketleri bu ikisi olmadan **satılabilir ama kullanılamaz**, o yüzden aynı
+blokta. PKG-9 saf kolaylık, üstüne oturur.
 
-PKG-10 (dondurma) süreli üyelik satışı başladıktan sonra gelebilir ama
-**ilk 6 aylık paket dolmadan** hazır olmalı.
+**Blok 4 — işletme detayları.** PKG-10 ilk 6 aylık paket dolmadan hazır
+olmalı. PKG-11 ilk randevu alınmadan. PKG-12 sürekli birikir.
 
 ---
 
