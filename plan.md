@@ -1259,7 +1259,7 @@ fetch-all-filtrele-istemcide desenini kullanıyor.
 
 ---
 
-### [ ] PKG-5 · Promosyonlar
+### [x] PKG-5 · Promosyonlar
 
 Dönemsel kampanyalar: yüzde/tutar indirimi ya da ek süre ("1 yıl alana 1 ay
 hediye"). Promosyon **kataloğu değiştirmez** — katalog satılmış içeriği
@@ -1288,6 +1288,44 @@ transaction içinde (karar 4).
 
 **Arayüz:** Salon ayarlarında promosyon listesi; atama ekranında "Promosyon
 uygula" ve **önce/sonra fiyat ile ek sürenin açıkça yazıldığı** özet.
+
+---
+
+**Çözüldü (20 Ağustos 2026).** `promotions` → `promotionRepo.ts` →
+`assignPackageToMember` (promosyon parametresi eklendi) → kurallar (94 test,
++5) → composite index → `admin/promotions.tsx` (kampanya listesi) +
+`admin/promotion-form.tsx` (oluştur/düzenle) + `admin/assign-package.tsx`'e
+promosyon seçici ve önce/sonra özeti.
+
+**`redeemed` sayacı planın kendi "sayan her şey callable'da" ilkesinin
+istisnası — bilinçli.** Diğer tüm sayaçlar (`activeMemberCount`,
+`activeAssignmentCount`) bir Cloud Function gerektiriyordu çünkü kurallar
+*sorgu* yapamaz. Burada sorguya gerek yok: `redeemed` tek dokümanda duran
+düz bir sayı, kural onu "tam +1 ve tavanın altında" diye doğrudan
+doğrulayabiliyor — `classes.bookedUserIds.size() <= capacity` ile aynı
+desen. `assignPackageToMember` bunu `runTransaction` içinde yapıyor,
+`bookClass`'ın kapasite kontrolüyle birebir aynı atomiklik garantisiyle.
+
+**Uyumsuz `kind`/paket eşleşmesi sessiz no-op, hata değil — planın kendi
+sözü.** `bonusDays` yalnızca `membership`, `bonusLessons` yalnızca `lessons`
+paketini etkiler; ters eşleşirse değer kopyalanır ama hiçbir şeyi
+değiştirmez. `promotion-form.tsx`'in paket seçicisi `kind`'e göre
+filtrelendiği için bu pratikte hiç yaşanmıyor.
+
+**Planın belirtmediği, kendim karar verdiğim bir nokta: kampanya
+tarihleri.** Plan `startsAt`/`endsAt` Timestamp diyordu ama bunu seçecek
+bir takvim bileşeni uygulamada **hiç yok** (yeni native bağımlılık = yeni
+EAS build). Bunun yerine `startsAt` her zaman "şimdi", admin yalnızca "kaç
+gün sürecek?" seçiyor (paket formunun zaten kullandığı gün-sayacı deyimi).
+Sonuç: **ileri tarihli bir kampanya planlanamaz** — bu v1 kısıtı, gerçek
+takvim seçici gerektiğinde ele alınmalı.
+
+**Yapılmayan (bilerek):** üye yüzlü promosyon vitrini yok — okuma yalnızca
+kiracı personeline açık. PKG-12 "görünürlük" maddesinin kapsamında değildi,
+ayrıca istenirse eklenir.
+
+**Simülatörde doğrulanmadı** — kullanıcı isteğiyle sona ertelendi.
+`tsc --noEmit`, `expo lint` temiz.
 
 ---
 

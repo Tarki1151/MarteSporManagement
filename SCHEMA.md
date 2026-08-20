@@ -84,6 +84,11 @@ dizi bütünüyle yeniden yazılır.
 `tenant_memberships` doküman kimliği değil. Tek istisna `checkins.membershipId`
 alanıdır (QR yükü olarak üyelik doküman kimliğini taşır).
 
+`promotions` diyagrama çizilmedi (yer darlığı) ama `gym_packages`'ın
+kiracı-kapsamlı bir kardeşi: `tenants` altında yaşar, hiçbir koleksiyona
+FK ile bağlı değildir — etkisi yalnızca atama anında `member_packages`'a
+düz değer olarak kopyalanır.
+
 ---
 
 ## Koleksiyonlar
@@ -339,13 +344,60 @@ kodunda `if (name === 'Gold')` gibi bir dal **hiçbir yerde yok.**
 
 ---
 
+### `promotions` — zaman sınırlı kampanya (PKG-5)
+| Alan | Tip | Not |
+|---|---|---|
+| `tenantId` / `name` | | |
+| `kind` | `'percentDiscount' \| 'amountDiscount' \| 'bonusDays' \| 'bonusLessons'` | |
+| `value` | number | %, ₺, gün veya ders — `kind`'e göre |
+| `appliesTo` | string[] | `gym_packages` kimlikleri; boş = tüm paketler |
+| `startsAt` / `endsAt` | Timestamp | Kampanya penceresi |
+| `maxRedemptions` | number? | Yoksa sınırsız |
+| `redeemed` | number | **Sunucu tarafından değil, kural tarafından korunan sayaç** — bkz. aşağı |
+| `isActive` | boolean | |
+
+**`gym_packages`'a hiç dokunmaz.** Katalog satılmış içeriği korur
+(değişmezlik kuralı); bir kampanya kataloğu değiştirseydi her promosyon
+paketin yeni bir sürümünü doğururdu. Bunun yerine etkisi atama anında
+`member_packages`'a **düz değer olarak kopyalanır** (`listPrice`,
+`finalPrice`, `bonusDays`, `bonusLessons`) — bu doküman sonradan
+değişse, kapansa ya da silinse de üyenin aldığı şey değişmez.
+
+**`redeemed` — nadir görülen bir durum: Cloud Function'sız güvenli sayaç.**
+`gym_packages.activeAssignmentCount` gibi diğer tüm sayaçlar bir Cloud
+Function gerektiriyordu çünkü kurallar *sorgu* yapamaz (kaç doküman şu
+paketi işaret ediyor?). Burada öyle bir sorguya gerek yok — `redeemed` tek
+bir dokümanda tutulan düz bir sayı, kural onu **"tam +1 ve tavanın altında"**
+diye doğrudan doğrulayabilir (`classes.bookedUserIds.size() <= capacity`
+ile aynı desen). `assignPackageToMember` bunu bir `runTransaction` içinde
+yapıyor — iki admin aynı kampanyayı aynı anda uygularsa Firestore'un kendi
+atomiklik garantisi devreye giriyor.
+
+**Kurallar:** okuma = kiracı personeli (üyeler görmüyor — v1'de üye yüzlü
+promosyon vitrini yok). Yazma: `create` yalnızca kiracı yöneticisi,
+`redeemed:0` zorunlu. `update` iki yoldan biri: ya yalnızca `redeemed` tam
++1 hareket eder (ve tavanın altında kalır), ya da `redeemed` hiç
+değişmeden başka alanlar serbestçe düzenlenir. Silme serbest — `gym_packages`
+gibi bir kilit yok, çünkü etkisi zaten kopyalanmış.
+
+**Uyumsuz `kind`/paket eşleşmesi sessiz bir no-op'tur, hata değil.**
+`bonusDays` yalnızca `membership` paketinin süresini uzatır, `bonusLessons`
+yalnızca `lessons` paketinin kredisine eklenir — biri diğerine uygulanırsa
+değer kopyalanır ama hiçbir şeyi değiştirmez. `admin/promotion-form.tsx`
+paket seçicisini `kind`'e göre filtreleyerek bunun pratikte hiç
+yaşanmamasını sağlıyor.
+
+**Index:** `tenantId ASC, createdAt DESC`
+
+---
+
 ### `member_packages` — bir üyeye atanmış paket (PKG-2)
 | Alan | Tip | Not |
 |---|---|---|
 | `tenantId` / `memberId` / `memberName` | | `memberName` denormalize |
 | `packageId` / `packageName` / `kind` / `entitlements` / `freezePolicy` | | Atama anında **kopyalanır** — katalog sonra değişse de bu satır değişmez |
-| `listPrice` / `finalPrice` | number | Şimdilik eşit; PKG-5 promosyonla ayrışacak |
-| `promotionId` / `promotionName` / `bonusDays` / `bonusLessons` | | PKG-5, henüz yazılmıyor |
+| `listPrice` / `finalPrice` | number | Promosyon yoksa eşit; varsa `finalPrice` indirimli tutar (PKG-5) |
+| `promotionId` / `promotionName` / `bonusDays` / `bonusLessons` | | Promosyon uygulandıysa (PKG-5) — `promotions` dokümanının atama anındaki kopyası |
 | `startsAt` / `endsAt` | Timestamp | `membership`: `+durationDays`. `lessons`: `+lessonValidityDays` |
 | `frozenDays` / `freezes` | number / array | PKG-10, henüz yazılmıyor (`0` / `[]`) |
 | `status` | `'active' \| 'frozen' \| 'expired' \| 'cancelled'` | **`status` tek başına güvenilmez** — PKG-12'nin günlük fonksiyonu gelene kadar süresi geçmiş bir paket hâlâ `active` görünebilir. Her zaman `endsAt`'i de kontrol et. |
