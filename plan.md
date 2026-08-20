@@ -1456,7 +1456,7 @@ değiştirilemiyor.
 
 ---
 
-### [ ] PKG-7 · Antrenör müsaitlik modeli
+### [x] PKG-7 · Antrenör müsaitlik modeli
 
 Randevunun ön koşulu; şu anda hiç yok.
 
@@ -1481,7 +1481,34 @@ istemcide hesaplanır, ikisi de zaten okunuyor.
 
 ---
 
-### [ ] PKG-8 · Üyenin randevu alması (kredi tüketimi)
+**Çözüldü (20 Ağustos 2026).** `TrainerAvailability`/`Weekday`/`TimeWindow`/
+`AvailabilityException` tipleri → `availabilityRepo.ts` (`watchTrainerAvailability`,
+`setTrainerAvailability`, `hasAnyAvailability`, `computeFreeSlots`) → kurallar
+(`trainer_availability` bloğu) → `trainer/availability.tsx` (Antrenör Profil'e
+eklenen "Çalışma saatlerim" girişinden açılıyor).
+
+**Zaman seçimi saat çipleriyle, planın öngördüğü gibi değil ama aynı v1
+kısıtından geliyor.** Uygulamada hiç saat seçici bileşeni yok (PKG-5/6'daki
+aynı sınır). Plan `weekly` alanını serbest `'HH:mm'` string'i olarak
+tanımlıyordu; ekran bunu 06:00–22:00 arası tam saat çipleriyle dolduruyor.
+Veri modeli dakika hassasiyetini destekliyor, yalnızca bu ekran onu
+sergilemiyor.
+
+**Günde tek pencere — planın `TimeWindow[]` (öğle arası gibi bölünmüş gün)
+imkânını veri modeli koruyor, ekran sergilemiyor.** `setTrainerAvailability`
+her gün için en fazla bir `{start,end}` yazıyor; ileride bölünmüş gün
+gerekirse yalnızca ekran değişir, kural ve tip zaten hazır.
+
+**`exceptions` veri modelde var, ekranda hiç yok** — plan da bunu ayrı bir
+"istisna" kavramı olarak tanımlamıştı, v1 kapsamı yalnızca haftalık düzeni
+kapsıyor.
+
+**Simülatörde doğrulanmadı** — kullanıcı isteğiyle sona ertelendi.
+`tsc --noEmit`, `expo lint`, kurallar testi (102/102) temiz.
+
+---
+
+### [x] PKG-8 · Üyenin randevu alması (kredi tüketimi)
 
 `bookPtSessions({ tenantId, trainerId, slots: [Date] })` — callable, tek
 transaction (karar 4):
@@ -1498,6 +1525,51 @@ pakete bağlı olmayan kendi kaydı (mevcut davranış korunur). Kural,
 
 **Arayüz:** Üye → "Randevu al" → antrenör seç → takvim + o günün boş slotları
 → onay. `MonthCalendar` yeniden kullanılır.
+
+---
+
+**Çözüldü (20 Ağustos 2026).** `pt_sessions.creditId` → kural (`creditId`
+alanı olan doküman istemciden asla oluşturulamaz) → `trainer_busy_slots`
+ayna koleksiyonu + `syncTrainerBusySlots` (gizlilik: bir üye başka üyenin
+kiminle randevusu olduğunu göremez) → `bookPtSessions` callable (tek
+transaction: üyelik + müsaitlik + çakışma + kredi yeterliliği doğrular, en
+erken bitecek krediden düşer) → `ptSessionRepo.bookPtSessions` istemci
+sarmalayıcısı → `member/trainers.tsx` (antrenör seç) → `member/book-session.tsx`
+(takvim + boş slot çipleri + onay) → Bugün ekranında "Randevu al" girişi.
+
+**Neden callable, planın kendi "karar 4"ünün doğal sonucu.** Yeterlilik
+kontrolü tek bir üyenin **birden fazla** `member_credits` dokümanını
+toplayıp karşılaştırmayı gerektiriyor — kural tek doküman öncesi/sonrasını
+görebilir, sorgu sonucunu değil. `assignPackageToMember`/promosyon harcaması
+gibi istemci `runTransaction`'ı burada işe yaramıyor: iki cihaz aynı slotu
+aynı anda rezerve etmeye çalışırsa yarış durumunu yalnızca sunucu tarafı
+transaction önler.
+
+**`trainer_busy_slots` planın metninde yoktu, gizlilik gereği eklendi.**
+Plan boş slot hesabını "`weekly` − `exceptions` − `pt_sessions`" olarak
+tanımlıyordu ama `pt_sessions`'ı doğrudan okumak üyenin kimin ne zaman
+randevusu olduğunu görmesi demek — kural buna izin vermiyordu zaten (yalnız
+kendi randevusunu okuyabiliyor, PKG-6 öncesi kural). Kimlik alanlarını
+taşımayan bir ayna, `member_entitlements` (PKG-4) ile aynı desenin gizlilik
+motivasyonlu hali.
+
+**Tek slot rezervasyonu — callable birden fazlasını destekliyor, ekran
+sergilemiyor.** `bookPtSessions({slots: Date[]})` imzası PKG-9'un (seri
+randevu) planladığı aynı callable'ı yeniden kullanması için baştan dizi
+alıyor; bu ekran şimdilik `slots: [tek seçim]` gönderiyor.
+
+**`remaining <= 0` istemci tarafı kontrolü yalnızca UX** — plan "sayan her
+şey callable'da" prensibini burada da koruyor: gerçek yeterlilik kontrolü
+`bookPtSessions` içinde, ekrandaki kontrol yalnızca boş bir butonun round-trip
+hatasından daha iyi olması için var.
+
+**Simülatörde doğrulanmadı** — kullanıcı isteğiyle sona ertelendi.
+`tsc --noEmit`, `expo lint`, `functions` derlemesi, kurallar testi
+(102/102) temiz.
+
+**Bu maddeyle Blok 3 tamamlandı (PKG-7→8).** Ders paketleri artık
+kullanılabilir: antrenör saatlerini tanımlayabiliyor, üye kredisini
+harcayarak randevu alabiliyor.
 
 ---
 

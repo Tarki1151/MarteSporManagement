@@ -553,6 +553,7 @@ dersi taşımıyor, o yüzden bu şu an üretimde erişilemeyen bir dal.
 | `date` | Timestamp | |
 | `durationMinutes` | number | |
 | `status` | `'scheduled' \| 'completed' \| 'cancelled'` | |
+| `creditId` | string? | Hangi `member_credits` dokümanı ödedi — üyenin kendi rezervasyonu (PKG-8). Antrenörün/adminin oluşturduğu randevuda yok. **İstemci `creditId` ile doküman oluşturamaz** — yalnızca `bookPtSessions` callable yazar |
 | `createdAt` / `updatedAt` | Timestamp | |
 
 **Devir modeli — üç yol:**
@@ -563,6 +564,46 @@ dersi taşımıyor, o yüzden bu şu an üretimde erişilemeyen bir dal.
    updatedAt` ile sınırlar).
 
 **Index:** `tenantId ASC, trainerId ASC, date ASC` ve `tenantId ASC, date ASC`
+
+---
+
+### `trainer_availability` — antrenörün haftalık çalışma saatleri (PKG-7)
+**Doküman kimliği: `{tenantId}_{trainerId}`**
+
+| Alan | Tip | Not |
+|---|---|---|
+| `tenantId` / `trainerId` | string | |
+| `weekly` | `Partial<Record<Weekday, TimeWindow[]>>` | `Weekday = 'mon'..'sun'`, `TimeWindow = {start,end}` (`'HH:mm'`). Gün yoksa o gün kapalı |
+| `slotMinutes` | number | Randevu dilim uzunluğu (30/45/60/90) |
+| `exceptions` | `AvailabilityException[]` | `{date:'YYYY-MM-DD', closed?, windows?}` — tek günlük istisna (tatil, farklı saat). v1 ekranı bunu hiç yazmıyor, veri modeli hazır |
+| `updatedAt` | Timestamp | |
+
+**Kurallar:** okuma her kiracı üyesi (üye randevu ararken görmeli); yazma
+yalnızca ilgili antrenörün kendisi veya kiracı admini.
+
+**Boş `weekly` ≠ "her gün kapalı ama tanımlı"** — `hasAnyAvailability()`
+bunu "hiç ayarlanmamış" olarak ele alır; üye tarafı bunu düz bir "boş gün
+listesi" yerine "antrenör henüz saatlerini tanımlamamış" olarak gösterir.
+
+---
+
+### `trainer_busy_slots` — antrenörün dolu saatleri, kimliksiz (PKG-7/8)
+**Doküman kimliği: kaynak `pt_sessions` dokümanının id'si**
+
+| Alan | Tip |
+|---|---|
+| `tenantId` / `trainerId` | string |
+| `date` | Timestamp |
+| `durationMinutes` | number |
+| `status` | `'scheduled' \| 'completed' \| 'cancelled'` |
+
+Gizlilik amaçlı ayna: `pt_sessions`'ın `memberId`/`memberName` alanları
+olmadan sadece "bu saat dolu mu" sorusuna cevap verir — bir üye randevu
+ararken başka bir üyenin kiminle, ne zaman göründüğünü göremesin diye.
+`syncTrainerBusySlots` Cloud Function'ı `pt_sessions` üzerindeki her
+yazımda senkronlar (silme dahil). **İstemci hiçbir zaman yazamaz.**
+
+**Index:** `tenantId ASC, trainerId ASC, date ASC`
 
 ---
 
@@ -621,6 +662,8 @@ ve `payments` için ikinci (legacy) match bloğu.
 | `applyPackageChange` | `package_change_requests` `pending→approved` | Tek yetkili yazar: eski paketi kapatır, yenisini açar, kredi/promosyon/iade işler (PKG-6) |
 | `expirePendingPackageChangeRequests` | zamanlanmış (günlük, 24 saat) | Süresi geçen bekleyen teklifleri `expired` yapar (PKG-6) |
 | `syncMemberEntitlements` | `member_packages` yazım | `member_entitlements` önbelleğini günceller — `classes` rezervasyon kuralının tek okumada kontrol edebilmesi için (PKG-4) |
+| `syncTrainerBusySlots` | `pt_sessions` yazım (create/update/delete) | `trainer_busy_slots` aynasını senkronlar — kimlik alanları olmadan (PKG-7/8) |
+| `bookPtSessions` | onCall | Üyenin kendi randevusunu alması: müsaitlik + çakışma + kredi yeterliliğini tek transaction'da doğrular, en erken bitecek krediden başlayarak düşer, `pt_sessions` dokümanlarını `creditId` ile yazar (PKG-8) |
 
 > Bu tablo eksik: `deleteMyAccount`, `assignMembershipShortCode`,
 > `promoteFromClassWaitlist`, `syncActiveMemberCount` RM fazında eklendi ama
