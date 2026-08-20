@@ -124,6 +124,7 @@ koleksiyonları kendi `isAdmin()` kontrollerini korur.
 | `status` | `'pending' \| 'active' \| 'rejected' \| 'suspended'` | |
 | `userDisplayName` / `userEmail` | string? | Denormalize — istemci başka kullanıcının Auth profilini okuyamaz, onay ekranı bu kopyaya muhtaç |
 | `shortCode` | string? | 6 haneli elle giriş kodu (kiracı içinde tekil) |
+| `phone` / `birthDate` | string? / Timestamp? | Yalnızca marte06'dan taşınan üyelerde — bkz. aşağı |
 | `requestedAt` / `approvedAt` | Timestamp | |
 
 **Kurallar:** okuma = kendisi veya kiracı personeli (`isTenantStaff`).
@@ -150,6 +151,15 @@ kaynağı `gymentra-mobile/src/data/membership.ts`:
 
 **Sorgu notu:** rol filtreleri `where('roles','array-contains', …)` şeklinde.
 Bu, `(tenantId, status, roles CONTAINS)` composite index'ini gerektirir.
+
+**`phone` / `birthDate` — yalnızca göç edilen üyelerde (20 Ağustos 2026).**
+WEB-2 taşıması (bkz. aşağıdaki WEB bölümü) yalnızca ad/e-posta/rol
+kopyaladı; telefon ve doğum günü marte06'nın `members` koleksiyonunda kaldı.
+`marte06/scripts/backfill_member_contact_info.cjs` (Admin SDK, kural
+atlar — bilerek: yeni üye kaydında bu alanlar hiç toplanmıyor, self-servis
+yazma yolu yok) `memberUid` üzerinden eşleştirip kopyalıyor. **Kural
+değişikliği yok** — okuma zaten tüm doküman için kendisi/kiracı personeli
+kapsamında.
 
 ---
 
