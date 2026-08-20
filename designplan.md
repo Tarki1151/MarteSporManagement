@@ -247,8 +247,10 @@ an bilinçli bir tercih değil, boşluk. Aşağıdaki maddeler bunu kapatmak iç
 
       **Üyelik bitiş tarihi yapılmadı:** veri modelinde böyle bir alan yok.
       `expiresAt` yalnızca salonun kendi aboneliğinde (`tenants`), üyelikte
-      değil. Eklenmesi `tenant_memberships` şeması ve tahsilat akışıyla
-      birlikte karar verilmesi gereken bir iş.
+      değil. Salon sahibiyle netleşti: üyeliğin değil, **üyelik paketinin**
+      bitişi olacak — `plan.md` içindeki **PKG** fazı. Bugün ekranındaki
+      "Gold Üye · 24 gün kaldı" ve "8 Ders · 5 kaldı" kartları PKG-7'de
+      gelecek.
 
 - [x] **D1-2 · "Bugün" ekranı zayıf.**
       Sadece bugünün dersi + haftalık antrenman halkası. Üyenin gerçekten
