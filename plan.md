@@ -961,6 +961,29 @@ yoksa admin'in içeriği değiştirmesi anlamsızlaşır.
 **Kurallar:** okuma = kiracı personeli + kiracı üyesi (üye ne satın
 alabileceğini görsün), yazma = kiracı yöneticisi.
 
+#### Satılmış paket değişmez — sürümleme
+
+Bir pakete **aktif atama varken içeriği değiştirilemez.** Fiyat, süre, haklar
+ve dondurma politikası kilitlenir. Gerekçe basit: üye belirli bir içeriği
+satın aldı; kataloğu düzenlemek geriye dönük olarak satılmış hakkı değiştirmek
+anlamına gelir.
+
+- `activeAssignmentCount` alanı `member_packages` yazımlarını izleyen Cloud
+  Function tarafından tutulur. **Firestore kuralları sayamaz**, bu yüzden
+  denormalize sayaç zorunlu (aynı gerekçe `tenants.activeMemberCount` için de
+  geçerliydi).
+- Sayaç `0` iken paket serbestçe düzenlenir.
+- Sayaç `> 0` iken kural yalnızca `isActive` ve `sortOrder` değişimine izin
+  verir. İçeriği değiştirmek isteyen admin **yeni sürüm** oluşturur:
+  `supersedesId` ile eskiye bağlanır, eski paket `isActive:false` olur
+  (artık satılmaz), mevcut atamalar bozulmadan devam eder.
+- Arayüz bunu bir engel gibi değil, akış gibi sunar: "Bu pakete sahip 12 aktif
+  üye var. Değişiklikler yeni sürüm olarak kaydedilecek."
+
+`member_packages` zaten atama anında hakları **kopyalıyor** (PKG-2). Sürümleme
+onun yerine geçmez, tamamlar: kopya satılmış hakkı korur, sürümleme katalogun
+geçmişini okunur tutar.
+
 ---
 
 ### [ ] PKG-2 · Paket atama ve ders kredisi defteri
@@ -1060,7 +1083,101 @@ anlamsız kalır.
 
 ---
 
-### [ ] PKG-5 · Antrenör müsaitlik modeli
+### [ ] PKG-5 · Promosyonlar
+
+Dönemsel kampanyalar: yüzde indirim ya da ek süre ("1 yıl alana 1 ay hediye").
+
+Promosyon **paketi değiştirmez.** Katalog satılmış içeriği koruduğu için
+(PKG-1 sürümleme) kampanya ayrı bir kavram olmak zorunda; aksi halde her
+kampanya paketin yeni bir sürümünü doğururdu.
+
+**`promotions`**
+
+| Alan | Tip | Not |
+|---|---|---|
+| `tenantId` | string | |
+| `name` | string | "Yıllık üyeliğe 1 ay hediye" |
+| `kind` | `'percentDiscount' \| 'amountDiscount' \| 'bonusDays' \| 'bonusLessons'` | |
+| `value` | number | %20 · 500 ₺ · 30 gün · 4 ders |
+| `appliesTo` | array | `gym_packages` kimlikleri; boş = tümü |
+| `startsAt` / `endsAt` | Timestamp | Kampanya penceresi |
+| `maxRedemptions` / `redeemed` | number? | Sınırlıysa; `redeemed` istemciden yazılamaz |
+| `isActive` | boolean | |
+
+Atama sırasında admin uygun promosyonlardan birini seçer. Sonuç
+`member_packages`'a **düz olarak yazılır**:
+
+```
+promotionId, promotionName,
+listPrice: 6000, finalPrice: 4800,     // ne yazdığı açıkça görünsün
+bonusDays: 30, bonusLessons: 0
+```
+
+`endsAt` hesabı `durationDays + bonusDays`; ders kredisi `lessonCount +
+bonusLessons`. Promosyon sonradan bitse ya da silinse bile üyenin aldığı
+şey değişmez — fiyat ve haklar gibi bunlar da **kopyalanmış** değerdir.
+
+`redeemed` sayacı ve `maxRedemptions` kontrolü atama callable'ında,
+transaction içinde (kural sayamaz).
+
+**Arayüz:** Salon ayarlarında promosyon listesi; atama ekranında "Promosyon
+uygula" ve seçildiğinde **önce/sonra fiyat ile ek sürenin açıkça yazıldığı**
+bir özet.
+
+---
+
+### [ ] PKG-6 · Üye onaylı paket değişikliği
+
+Salon sahibinin kuralı: **atanmış bir paketi tek taraflı değiştiremezsin.**
+Silver→Gold, Gold→Silver, promosyon süresi ya da ders paketi eklenmesi —
+hepsinde üye bilgilendirilmeli ve onaylamalı. Ücret değişiyorsa bu da
+açıkça görünmeli.
+
+**`package_change_requests`**
+
+| Alan | Tip | Not |
+|---|---|---|
+| `tenantId` / `memberId` / `memberName` | | |
+| `kind` | `'upgrade' \| 'downgrade' \| 'promotion' \| 'addon'` | Yalnızca etiketleme; yaptırım karşılaştırmadan gelir |
+| `currentSummary` | map | Mevcut paket adı, hakları, fiyatı, `endsAt` |
+| `proposedSummary` | map | Önerilen paket adı, hakları, fiyatı, `endsAt` |
+| `priceDelta` | number | Pozitif = ek ücret, negatif = iade, 0 = değişmiyor |
+| `note` | string? | Yöneticinin açıklaması |
+| `effectiveAt` | Timestamp | Onaylanırsa ne zaman geçerli |
+| `status` | `'pending' \| 'approved' \| 'rejected' \| 'expired' \| 'cancelled'` | |
+| `createdBy` / `createdAt` / `respondedAt` / `expiresAt` | | |
+
+**Akış:**
+1. Admin değişikliği hazırlar → istek `pending` olur. `member_packages`'a
+   **hiçbir şey yazılmaz.**
+2. Üyeye push gider (`sendPushToUser` altyapısı zaten var). Bugün ekranında
+   ve Hesabım'da öne çıkan bir kart belirir.
+3. Üye **iki paketi yan yana** görür: hangi hak gidiyor, hangi hak geliyor,
+   fiyat farkı ne, ne zaman başlıyor. Hak listesi `entitlements` map'inden
+   üretilir — özel metin yazılmaz, yoksa hak eklendiğinde ekran yalan söyler.
+4. Onaylarsa `applyPackageChange` callable transaction'da: isteği `approved`
+   yapar, eski `member_packages` kaydını kapatır, yenisini açar, promosyon
+   sayacını artırır, kredi defterini günceller.
+5. Reddederse hiçbir şey değişmez; yöneticiye bildirim gider.
+6. `expiresAt` geçerse zamanlanmış fonksiyon `expired` yapar — süresiz
+   bekleyen teklif, admin'in unuttuğu bir tuzağa dönüşür.
+
+**Kurallar:** üye kendi isteğini **okur ve yalnızca `status`'ü**
+`approved`/`rejected` yapabilir; başka hiçbir alana dokunamaz.
+`member_packages`'a üye asla yazamaz — değişikliği callable uygular.
+
+**Onay gerektirmeyen tek durum: ilk atama.** Üye zaten kasada satın aldı;
+oraya onay ekranı koymak resepsiyonu kilitler. Ama ilk atama da üyeye
+bilgilendirme bildirimi gönderir.
+
+**Karar bekliyor:** Gold→Silver gibi bir düşürmede dönem ortasında **fiyat
+farkı iade edilecek mi**, yoksa yalnızca yenilemede mi geçerli olacak?
+`priceDelta` alanı ikisini de taşıyabilir ama politikayı salon sahibi
+belirlemeli.
+
+---
+
+### [ ] PKG-7 · Antrenör müsaitlik modeli
 
 Randevunun ön koşulu; şu anda hiç yok.
 
@@ -1085,7 +1202,7 @@ Serbest slotlar = `weekly` − `exceptions` − o aralıktaki `pt_sessions`.
 
 ---
 
-### [ ] PKG-6 · Üyenin randevu alması (kredi tüketimi)
+### [ ] PKG-8 · Üyenin randevu alması (kredi tüketimi)
 
 **Yazma yolu Cloud Function callable olacak, istemci değil.** Sebep: kalan
 kredi kontrolü ile randevu oluşturma **atomik** olmalı. Firestore kuralları
@@ -1109,7 +1226,7 @@ slotları → onay. `MonthCalendar` yeniden kullanılır.
 
 ---
 
-### [ ] PKG-7 · Seri randevu (haftalık tekrar)
+### [ ] PKG-9 · Seri randevu (haftalık tekrar)
 
 Salon sahibinin açıkça istediği kolaylık: *"antrenörün her cuma 08:00–09:00
 zamanını 8 ders için al."*
@@ -1124,7 +1241,7 @@ reddetmek kullanıcıyı çıkmaza sokar.
 
 ---
 
-### [ ] PKG-8 · Paket dondurma
+### [ ] PKG-10 · Paket dondurma
 
 **Politika (varsayılan, paket bazında admin değiştirebilir):**
 
@@ -1154,7 +1271,7 @@ pakete geriye dönük uygulanmaz.
 
 ---
 
-### [ ] PKG-9 · İptal ve iade politikası
+### [ ] PKG-11 · İptal ve iade politikası
 
 Kredi **randevu alınırken** düşer (antrenörün zamanı o an rezerve edilir),
 dolayısıyla iptalin krediyi geri verip vermediği tanımlanmalı.
@@ -1168,7 +1285,7 @@ Kiracı ayarında `cancellationHours` (varsayılan 24):
 
 ---
 
-### [ ] PKG-10 · Görünürlük ve raporlama
+### [ ] PKG-12 · Görünürlük ve raporlama
 
 - **Üye:** Bugün ekranı ve Hesabım'da aktif paket — "Gold · 24 gün kaldı",
   "12 Ders · 5 kaldı · 12 Ekim'e kadar". (D1-1'de veri olmadığı için
@@ -1192,10 +1309,18 @@ için. Farklıysa PKG-4'ten önce söylenmeli.
 
 PKG-1 → PKG-2 → PKG-3 birlikte **süreli üyeliği uçtan uca çalışır** hale
 getirir ve istenen check-in uyarısını verir. PKG-4 seviyeleri anlamlı kılar
-(onsuz Silver ile Gold arasında fark yok). Ders paketleri PKG-5 → PKG-6
-olmadan satılabilir ama **kullanılamaz**, o yüzden o ikisi aynı blokta.
-PKG-7 saf kolaylık. PKG-8 süreli üyelik satışı başladıktan sonra gelmeli
-ama ilk 6 aylık paket dolmadan önce hazır olmalı.
+(onsuz Silver ile Gold arasında fark yok).
+
+PKG-5 (promosyon) ve PKG-6 (üye onayı) ikinci blok. PKG-6'nın **PKG-5'ten
+sonra** gelmesi bilinçli: onay ekranının göstereceği "ne değişiyor"
+özetinin promosyonu da kapsaması gerekir, sonradan eklemek ekranı ikinci kez
+yazdırır.
+
+Ders paketleri PKG-7 → PKG-8 olmadan satılabilir ama **kullanılamaz**, o
+yüzden o ikisi aynı blokta. PKG-9 saf kolaylık.
+
+PKG-10 (dondurma) süreli üyelik satışı başladıktan sonra gelebilir ama
+**ilk 6 aylık paket dolmadan** hazır olmalı.
 
 ---
 
@@ -1211,10 +1336,12 @@ ama ilk 6 aylık paket dolmadan önce hazır olmalı.
    günlük işleyişinde eksik olan en büyük parça.
 7. **PKG-4** — grup dersi hakkının yaptırımı. Onsuz Silver ile Gold arasında
    hiçbir fark yok, yani seviyeler satılamaz.
-8. **PKG-5 → PKG-6** — antrenör müsaitliği ve üyenin randevu alması. Ders
+8. **PKG-5 → PKG-6** — promosyon altyapısı ve üye onaylı paket değişikliği.
+   Atanmış paket tek taraflı değiştirilemez; bu ikisi o kuralın altyapısı.
+9. **PKG-7 → PKG-8** — antrenör müsaitliği ve üyenin randevu alması. Ders
    paketleri bu ikisi olmadan satılabilir ama kullanılamaz.
-9. **PKG-8** — dondurma; ilk 6 aylık paket dolmadan hazır olmalı.
-10. Kalanlar önceliklendirilerek (PKG-7/9/10, designplan D2–D3).
+10. **PKG-10** — dondurma; ilk 6 aylık paket dolmadan hazır olmalı.
+11. Kalanlar önceliklendirilerek (PKG-9/11/12, designplan D2–D3).
 
 ---
 
