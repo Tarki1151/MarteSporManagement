@@ -229,20 +229,61 @@ an bilinçli bir tercih değil, boşluk. Aşağıdaki maddeler bunu kapatmak iç
       **İş:** Bugün ekranını gerçek bir "gösterge paneli" olarak yeniden
       kurgula. Öncelik sırası: bugünkü eylem → yaklaşan → durum.
 
-- [ ] **D1-3 · Boş durumlar (empty states) yetersiz.**
+- [x] **D1-3 · Boş durumlar (empty states) yetersiz.**
       Çoğu ekran boşken tek satır gri metin gösteriyor. Boş durum, ürünün en
       öğretici anıdır — ne olduğunu, neden boş olduğunu ve bir sonraki adımı
       söylemeli.
       **İş:** Her liste için illüstrasyon/ikon + başlık + açıklama + birincil
       eylem içeren tutarlı bir `EmptyState` bileşeni.
 
-- [ ] **D1-4 · Yükleniyor durumları yok.**
+      **Çözüldü (20 Ağustos 2026).** `components/EmptyState.tsx` — daire içinde
+      ikon + başlık + açıklama + isteğe bağlı eylem. Dokuz listeye uygulandı.
+
+      `action` bilinçli olarak isteğe bağlı: izleyicinin yapabileceği bir şey
+      olmayan boş liste (üyenin henüz ödemesi yok) alakasız bir yere götüren
+      buton büyütmemeli. Eylem konulan yerler gerçekten sonraki adımı
+      veriyor — programsız liste "Üyelere git", boş ders listesi "İlk dersi
+      ekle", eşleşmeyen arama "Aramayı temizle".
+
+- [x] **D1-4 · Yükleniyor durumları yok.**
       Ekranlar veri gelene kadar boş görünüyor; kullanıcı "boş mu, yükleniyor
       mu" ayırt edemiyor. `states.tsx` galerisinde tasarlanmış ama gerçek
       ekranlarda kullanılmamış.
       **İş:** İskelet (skeleton) yükleyiciler — özellikle liste ekranlarında.
       `plan.md` P2-1 (hata durumu) ile birlikte `loading | ready | empty | error`
       dört durumu her liste için netleştir.
+
+      **Çözüldü (20 Ağustos 2026).** Kök sebep bileşen eksikliği değildi:
+      `Skeleton` zaten vardı ama hiçbir ekranda kullanılmıyordu. Asıl sorun
+      **26 liste durumunun hepsinin `useState<T[]>([])` ile başlamasıydı** —
+      yani "yükleniyor" ile "boş" veri modelinde ayrılmıyordu bile, ekran ne
+      yaparsa yapsın ayırt edemezdi.
+
+      İlk snapshot gelene kadar `undefined`, `[]` gerçekten "hiç yok" anlamına
+      geliyor artık. `components/ListSkeleton.tsx` gerçek satırların şeklinde
+      yer tutucu basıyor; genişlikler kasıtlı olarak eşit değil, tek tip
+      barlar yükleme hatası gibi okunuyordu.
+
+      **Yol üstünde bulunan hata:** `admin/payments` ve `member/payments`
+      ekranlarındaki izleyicilerin **hata geri çağrısı hiç yoktu** — AGENTS.md
+      §5'in zorunlu tuttuğu şey. Eskiden bu yalnızca yanıltıcıydı (hata boş
+      liste gibi görünüyordu); iskeletle birlikte sonsuza kadar dönen bir
+      yükleme olurdu. İkisine de `ErrorNotice` + tekrar deneme bağlandı.
+      `admin/members` ve `admin/staff` iskeletleri de hata durumuna öncelik
+      verecek şekilde sıralandı.
+
+      Dönüştürülen ekranlar: `trainer/{index,programs}`,
+      `admin/{members,payments,classes,staff,today}`,
+      `member/{classes,payments}`.
+
+      **Dönüştürülmeyenler** (liste değil, gösterge paneli niteliğinde; her
+      biri birden çok küçük veri kümesini özetliyor): `trainer/profile`,
+      `trainer/member`, `trainer/calendar`, `member/progress`, `admin/index`.
+      Bunlar D1-2 kapsamında yeniden kurgulanacağı için ayrıca elden geçmeli.
+
+      **Simülatörde görsel olarak doğrulanmadı** — listeleri görmek için oturum
+      açmak gerekiyor ve bu simülatörde dokunmalar kaydedilmiyor (iki kez
+      denendi). Tip denetimi ve lint temiz.
 
 - [ ] **D1-5 · Geri bildirim (toast/snackbar) tutarsız.**
       Bazı ekranlarda `setSnack` ile özel bildirim, bazılarında `setError` ile
