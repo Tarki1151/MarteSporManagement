@@ -500,10 +500,18 @@ istemciden değil bir callable'dan (Admin SDK) yazacaklar.
 biteni önce) — bunu uygulayan kod henüz yok (PKG-8), ama sıralama zaten
 `watchMemberCredits`'in sorgu sırası.
 
-**`renewEntitlementCredits`** (günlük, `functions/`) her `source:'entitlement'`
-kredisinin süresi dolduğunda bir sonrakini açar — ama yalnızca kaynağı olan
-`member_packages` hâlâ `active` ve süresi dolmamışsa. Aksi halde sessizce
-durur; sona ermiş bir üyelik yeni ders üretmeye devam etmez.
+**`creditRollover`** (günlük, `functions/`, eski adı `renewEntitlementCredits`)
+`status in ['active','exhausted']` olan ve süresi dolmuş **her** krediyi
+`expired` yapar; `source:'entitlement'` olanlarda ek olarak bir sonraki
+dönemi açar — ama yalnızca kaynağı olan `member_packages` hâlâ `active` ve
+süresi dolmamışsa. Aksi halde sessizce durur; sona ermiş bir üyelik yeni ders
+üretmeye devam etmez. `exhausted` durumu da sorguya dahil: eski hâli yalnızca
+`active` sorguladığı için krediyi tüketen üyenin hakkı bir daha hiç
+yenilenmiyordu (plan-eng-review Faz 1.2, Codex #2). Eski krediyi
+`expired` yapmak ve yeni krediyi açmak **tek transaction'da**, yeni kredinin
+kimliği kaynak krediden türetilerek (`{creditId}_next`) — aksi halde ikisi
+arası bir çökme hakkı kalıcı siler, yeniden çalıştırma da ikinci bir kredi
+basar (Faz 1.3).
 
 ---
 
@@ -657,7 +665,7 @@ ve `payments` için ikinci (legacy) match bloğu.
 | `notifyOnPaymentStatusChange` | `payments` update | Ödeme onay/ret push'u |
 | `notifyOnProgramAssigned` | `programs` update | Program atandı push'u |
 | `syncPackageAssignmentCount` | `member_packages` yazım | `gym_packages.activeAssignmentCount` senkronu (PKG-1 kilidinin dayanağı) |
-| `renewEntitlementCredits` | zamanlanmış (günlük, 24 saat) | Periyodik hakları (Platinium'un çeyreklik dersi, kotalı grup dersi) bir sonraki döneme yuvarlar (PKG-2) |
+| `creditRollover` | zamanlanmış (günlük, 24 saat) | Süresi dolan her krediyi expired yapar; entitlement kaynaklıları bir sonraki döneme yuvarlar, tek transaction'da (PKG-2, eski adı renewEntitlementCredits) |
 | `notifyOnPackageChangeRequested` | `package_change_requests` create | Üyeye "paket teklifin var" push'u (PKG-6) |
 | `applyPackageChange` | `package_change_requests` `pending→approved` | Tek yetkili yazar: eski paketi kapatır, yenisini açar, kredi/promosyon/iade işler (PKG-6) |
 | `expirePendingPackageChangeRequests` | zamanlanmış (günlük, 24 saat) | Süresi geçen bekleyen teklifleri `expired` yapar (PKG-6) |
