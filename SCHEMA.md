@@ -76,7 +76,8 @@ dizi bütünüyle yeniden yazılır.
      ├──► pt_sessions     (birebir randevu)
      ├──► push_tokens     (cihaz bildirim jetonu)
      └──► member_packages (gym_packages'tan atanmış, hakları kopyalar)
-             └──► member_credits  (ders/grup dersi kota bakiyesi)
+             ├──► member_credits      (ders/grup dersi kota bakiyesi)
+             └──► member_entitlements (güncel paketin tek-dokümanlık hak önbelleği — kural bunu okur)
 ```
 
 **Kritik nokta:** `userId` her yerde **Firebase Auth uid**'dir,
@@ -178,8 +179,15 @@ kapsamında.
 **Kurallar:** okuma **ve** yazma salona aktif üyelik gerektirir
 (`isTenantMember`) — çapraz kiracı sızıntısı kapatıldı. Yazma = kiracı
 yöneticisi **veya** üyenin kendi uid'ini tek bir dizide ekleyip çıkarması
-(`isOnlySelfArrayToggle`). Kapasite kural düzeyinde kontrol edilir. Bekleme
-listesinden otomatik yükseltme **yok** (plan.md P2-8).
+(`isSelfArrayAdd`/`isSelfArrayRemove`). Kapasite kural düzeyinde kontrol
+edilir. Bekleme listesinden otomatik yükseltme `promoteFromClassWaitlist`
+Cloud Function'ı ile yapılıyor (P2-8, çözüldü).
+
+**`bookedUserIds`'e EKLEME ayrıca PKG-4'ün hak kontrolünden geçer** —
+`canBookGroupClass()`, `member_entitlements` önbelleğinde
+`groupClasses.unlimited == true` var mı diye bakar. **Çıkarma (iptal) hiçbir
+zaman gated değil** — `isSelfArrayRemove` tek başına yeterli; bir üyenin
+paketi değişse bile önceden yaptığı rezervasyonu iptal edebilmesi gerekir.
 
 **Sorgu notu:** istemci yalnızca bugünden itibaren ve `limit(100)` ile
 dinliyor.
@@ -383,6 +391,43 @@ durur; sona ermiş bir üyelik yeni ders üretmeye devam etmez.
 
 ---
 
+### `member_entitlements` — bir üyenin GÜNCEL paketinin hak önbelleği (PKG-4)
+**Doküman kimliği: `{tenantId}_{memberId}`**
+
+| Alan | Tip | Not |
+|---|---|---|
+| `tenantId` / `memberId` | string | |
+| `packageId` | string | Kaynak `member_packages` dokümanı |
+| `entitlements` | map | Kaynak paketin `entitlements`'ının kopyası |
+| `endsAt` | Timestamp | Kaynak paketin `endsAt`'i — **kural bunu `request.time` ile karşılaştırır** |
+| `updatedAt` | Timestamp | |
+
+**Neden var:** `classes` rezervasyon kuralı "bu üyenin şu an grup dersi hakkı
+var mı?" sorusunu yanıtlamalı ama kurallar sorgu yapamaz — yalnızca
+deterministik bir yoldan `get()` edebilir. `getMemberPackages`'ın yaptığı
+"üyenin güncel üyelik paketini bul" sorgusunu kural çalıştıramaz; bu yüzden
+sonucu tek dokümanlık bir önbellekte tutuyoruz.
+
+**Tazelik — neden `endsAt` kuralda tekrar kontrol ediliyor:** önbellek yalnızca
+`member_packages` **yazıldığında** yenileniyor (Cloud Function tetikleyicisi),
+zamanın geçmesiyle değil. Süresi dolmuş bir üyelik hiç yazma tetiklemeden
+sonsuza kadar `active` görünmeye devam ederdi — kural bu yüzden
+`get(...).data.endsAt > request.time` diye ayrıca doğruluyor. Aynı disiplin
+check-in'in (PKG-3) doğrudan okuma tercih etmesiyle aynı kökten: denormalize
+kopya, kendi kendine bayatlar.
+
+**Tamamen sunucu sahipli** — `syncMemberEntitlements` (Cloud Function,
+`member_packages` yazımında tetiklenir) dışında hiçbir yazma yolu yok, ne
+istemciden ne başka bir callable'dan. Okuma = kendisi veya kiracı personeli.
+
+**Kotalı (`{count, periodDays}`) grup dersi hakkı şu an rezervasyon
+açamıyor** — yalnızca `{unlimited: true}` `classes` yazımını geçiyor. Kredi
+tüketen bir callable (PKG-8'in ruhu, ama grup dersleri için ayrı bir akış
+gerekiyor) henüz yok; varsayılan şablonlarda da hiçbir paket kotalı grup
+dersi taşımıyor, o yüzden bu şu an üretimde erişilemeyen bir dal.
+
+---
+
 ### `pt_sessions` — birebir randevu (grup dersinden ayrı)
 | Alan | Tip | Not |
 |---|---|---|
@@ -456,6 +501,7 @@ ve `payments` için ikinci (legacy) match bloğu.
 | `notifyOnProgramAssigned` | `programs` update | Program atandı push'u |
 | `syncPackageAssignmentCount` | `member_packages` yazım | `gym_packages.activeAssignmentCount` senkronu (PKG-1 kilidinin dayanağı) |
 | `renewEntitlementCredits` | zamanlanmış (günlük, 24 saat) | Periyodik hakları (Platinium'un çeyreklik dersi, kotalı grup dersi) bir sonraki döneme yuvarlar (PKG-2) |
+| `syncMemberEntitlements` | `member_packages` yazım | `member_entitlements` önbelleğini günceller — `classes` rezervasyon kuralının tek okumada kontrol edebilmesi için (PKG-4) |
 
 > Bu tablo eksik: `deleteMyAccount`, `assignMembershipShortCode`,
 > `promoteFromClassWaitlist`, `syncActiveMemberCount` RM fazında eklendi ama

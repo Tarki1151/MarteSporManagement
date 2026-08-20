@@ -1181,7 +1181,7 @@ eklenir.
 
 ---
 
-### [ ] PKG-4 · Grup dersi hakkının yaptırımı
+### [x] PKG-4 · Grup dersi hakkının yaptırımı
 
 Bugün `classes` rezervasyonu **herkese açık**; seviyeler bu madde olmadan
 anlamsız kalır. Üç yol, karmaşıklık yalnızca sonuncusunda:
@@ -1204,6 +1204,58 @@ Salon isterse katalogdan açar; tohum şablonda Silver = yalnızca `gymAccess`.
 **deterministik doküman kimliği** (`{tenantId}_{memberId}_current`) ile tek
 okuma yeterli olacak şekilde tasarlanmalı, çünkü kural sorgu yapamaz. Kotalı
 durumda kural yalnızca hakkın varlığını doğrular; **sayma işi callable'ın**.
+
+---
+
+**Çözüldü (20 Ağustos 2026).** Planın kendisi bir mimari boşluk bırakmıştı:
+"deterministik doküman kimliği ile tek okuma yeterli olacak şekilde
+tasarlanmalı" diyordu ama `member_packages` rastgele id kullanıyordu (PKG-2)
+— kurallar "üyenin güncel üyelik paketi hangisi?" sorgusunu **hiç
+çalıştıramaz**, yalnızca sabit bir yoldan `get()` edebilir. Çözüm: yeni
+`member_entitlements/{tenantId}_{memberId}` — güncel paketin `entitlements`
++ `endsAt`'inin tek dokümanlık kopyası, `syncMemberEntitlements` Cloud
+Function'ı (`member_packages` yazımında tetiklenir) tarafından tutuluyor.
+`member_packages`'ın kendi geçmiş tutma tasarımına dokunulmadı — bu yalnızca
+bir yan önbellek.
+
+**Tazelik sorunu `request.time` ile çözüldü, günlük fonksiyona gerek
+kalmadı.** Önbellek yalnızca yazımda tazeleniyor, zamanın geçmesiyle değil
+— süresi dolmuş bir üyelik hiç yeni yazma tetiklemeden sonsuza kadar
+`active` görünmeye devam ederdi. Kural bunun yerine
+`get(...).data.endsAt > request.time` diye kendi doğruluyor; PKG-12'nin
+genel günlük "status tazele" işine bağımlı olmadan bugünden doğru.
+
+`isOnlySelfArrayToggle` `isSelfArrayAdd`/`isSelfArrayRemove` olarak ikiye
+bölündü — hak kontrolü yalnızca **ekleme**ye uygulanıyor, **çıkarma**
+(iptal) hiçbir zaman gated değil. Aksi hâlde paketi değişen bir üyenin eski
+rezervasyonunu iptal edememesi gibi saçma bir kilit çıkardı.
+
+**Kotalı grup dersi bilerek yarım bırakıldı — planın kendi sınırı.** Yalnızca
+`{unlimited: true}` rezervasyonu geçiyor; `{count, periodDays}` kredi tüketen
+bir callable gerektiriyor (PKG-8'in ruhu, ama grup dersleri `pt_sessions`
+değil `classes` üzerinde çalıştığı için ayrı bir akış), o da henüz yok.
+Varsayılan şablonlarda hiçbir paket kotalı grup dersi taşımıyor, yani bu şu
+an üretimde erişilemeyen bir dal — ama admin paket formunda kotalı seçeneği
+açarsa (PKG-1'de zaten var), üye rezervasyon deneyince kural onu reddediyor
+ve istemci bunu "yakında aktif olacak" diye açıkça söylüyor; sessiz bir
+bedava-kota açığı değil.
+
+**Yol üstünde bulunan iki eski hata düzeltildi:** `SCHEMA.md`'de `classes`
+bölümü "bekleme listesinden otomatik yükseltme yok" diyordu — P2-8 çoktan
+[x] işaretliydi, `promoteFromClassWaitlist` fonksiyonu zaten vardı. Aynı
+bölüm kaldırılan `isOnlySelfArrayToggle` ismini de anıyordu.
+
+Kural testleri 86 → 89: hak yoksa rezervasyon reddi, kotalı hak de reddi
+(callable yok), süresi geçmiş önbellek reddi (`request.time` kontrolü).
+
+**Simülatörde doğrulanmadı** — kullanıcı isteğiyle sona ertelendi.
+`tsc --noEmit`, `expo lint`, `functions` derlemesi temiz. Sıfır yeni
+composite index — Cloud Function `getMemberPackages` ile aynı
+fetch-all-filtrele-istemcide desenini kullanıyor.
+
+**Bu maddeyle Blok 1 tamamlandı (PKG-1→4).** Süreli üyelik uçtan uca
+çalışıyor ve seviyeler (Silver/Gold/Platinium) artık gerçekten satılabilir
+— Gold'un grup dersi hakkı Silver'a göre fiilen bir fark yaratıyor.
 
 ---
 
