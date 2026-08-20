@@ -1329,7 +1329,7 @@ ayrıca istenirse eklenir.
 
 ---
 
-### [ ] PKG-6 · Üye onaylı paket değişikliği
+### [x] PKG-6 · Üye onaylı paket değişikliği
 
 **Atanmış paket tek taraflı değiştirilemez.** Silver↔Gold geçişi, promosyon
 süresi ya da ders paketi eklenmesi — hepsinde üye bilgilendirilmeli ve
@@ -1390,6 +1390,69 @@ Onaylandığında `payments` defterine bir kayıt düşer.
 `charge`, mevcut kayıtlar geriye dönük uyumlu). Tutar her zaman pozitif
 kalır — negatif tutar raporlamayı kirletir. Para hareketi uygulama dışında
 gerçekleşir; burası **yalnızca defter**, bugünkü gibi.
+
+---
+
+**Çözüldü (20 Ağustos 2026).** `package_change_requests` → `packageChangeRepo.ts`
+→ kurallar (99 test, +5) → 2 composite index → 3 Cloud Function
+(`notifyOnPackageChangeRequested`, `applyPackageChange`,
+`expirePendingPackageChangeRequests`) → `admin/propose-package-change.tsx`
+(admin/member.tsx'teki aktif paket satırı artık "Değiştir" ile buraya
+açılıyor) → `member/package-offer.tsx` (yan yana karşılaştırma, onayla/reddet)
+→ Bugün ve Hesabım'da öne çıkan teklif kartı.
+
+**Cloud Function burada bir istisna değil, zorunluluk — planın kendi
+mantığının doğal sonucu.** `member_packages` kuralı hiçbir client update'ine
+izin vermiyor, admin dahil (PKG-2). Üyenin onayı yalnızca `status` alanını
+değiştirebiliyor; asıl işi (eski paketi kapatmak, yenisini açmak, kredi
+defterini güncellemek, promosyon sayacını artırmak, iade kaydı düşmek)
+yapacak sunucu tarafı bir yer olmak zorundaydı. `applyPackageChange` bu yeri
+dolduruyor — `pending→approved` geçişini izleyen bir `onDocumentUpdated`.
+
+**Apply anında yeniden doğrulama — planın belirtmediği ama gerekli bir
+karar.** Admin bir teklif hazırladıktan **günler sonra** üye onaylayabilir
+(varsayılan 3 gün pencere). Bu sürede bağlı promosyon süresi dolmuş ya da
+kontenjanı bitmiş olabilir. `applyPackageChange` promosyonu apply anında
+**yeniden kontrol ediyor**; artık geçerli değilse sessizce düşürülüyor —
+üye onayladığı temel değişikliği yine de alıyor, yalnızca artık geçerli
+olmayan hediyeyi almıyor. Hedef paketin kendisi ise sorun değil: PKG-1'in
+kilidi zaten içeriğinin donmuş olmasını garanti ediyor.
+
+**İdempotency — Cloud Functions tetikleyicileri aynı olayı yeniden teslim
+edebilir.** `appliedAt` işareti bunun karşılığı: set edildikten sonra aynı
+geçiş tekrar tetiklenirse fonksiyon hemen çıkıyor. Bu olmadan bir retry
+paketi ikinci kez atar, krediyi ikinci kez basar, promosyonu iki kez harcar.
+
+**"Ekleme" mi "değiştirme" mi — `kind` alanından değil, karşılaştırmadan
+çıkarılıyor.** Planın kendi sözü ("Etiketleme; yaptırım karşılaştırmadan
+gelir") burada somutlaştı: `currentPackageAssignmentId` varsa o paket
+kapatılıp değiştiriliyor; yoksa (üyenin o türden hâlâ aktif paketi yoksa —
+mesela Gold üyeye ilk kez ders paketi ekleniyor) hiçbir şey kapatılmıyor,
+saf ekleme oluyor. `admin/propose-package-change.tsx` bunu paket
+türlerinin (`membership`/`lessons`) eşleşip eşleşmediğine bakarak otomatik
+belirliyor.
+
+**Admin iptal yolu plan metninde yoktu, eklendi.** Plan yalnızca üyenin
+onay/red hakkını tanımlıyordu; hâlâ `pending` olan bir teklifi adminin geri
+çekebilmesi (fikir değiştirme, yanlış paket seçme) tanımlanmamıştı ama
+`status` enum'ında `'cancelled'` zaten vardı — kural ve repo fonksiyonu
+(`cancelPackageChangeRequest`) eklendi.
+
+**`payments.kind: 'charge'|'refund'` planın istediği gibi geriye dönük
+uyumlu** — alan yoksa `'charge'` sayılıyor, mevcut kayıtlar hiç dokunulmadı.
+
+**Yapılmayan (bilerek):** ileri tarihli teklif planlama yok — `effectiveAt`
+her zaman "şimdi" (PKG-5'teki aynı v1 kısıtı: takvim seçici bileşeni yok).
+Onay/red sonrası başarı bildirimi yalnızca planın açıkça istediği iki yerde
+var (üyeye teklif geldiğinde, adminine reddedildiğinde) — onaylandığında
+adminine ayrıca bildirim gitmiyor, plan bunu istemedi.
+
+**Simülatörde doğrulanmadı** — kullanıcı isteğiyle sona ertelendi.
+`tsc --noEmit`, `expo lint`, `functions` derlemesi temiz.
+
+**Bu maddeyle Blok 2 tamamlandı (PKG-5→6).** Ticari esneklik hazır:
+promosyon uygulanabiliyor, atanmış bir paket artık tek taraflı
+değiştirilemiyor.
 
 ---
 

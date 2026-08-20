@@ -293,11 +293,14 @@ kendisi için. **Update/delete kapalı** — geçmiş düzeltilemez.
 | `amount` | number | > 0 |
 | `method` | `'cash' \| 'bank_transfer'` | |
 | `status` | `'pending' \| 'confirmed' \| 'rejected'` | |
+| `kind` | `'charge' \| 'refund'` | **PKG-6, 20 Ağustos 2026.** Yoksa `'charge'` sayılır (geriye dönük uyumlu). Tutar her zaman pozitif — yön `kind` taşır, negatif tutar raporlamayı kirletir |
 | `note` | string? | |
 | `createdAt` / `confirmedAt` | Timestamp | |
 
 **Akış:** Yönetici girerse doğrudan `confirmed`. Üye bildirirse `pending` →
-yönetici `confirmed`/`rejected` yapar.
+yönetici `confirmed`/`rejected` yapar. **İstisna:** bir paket düşürmesinin
+oransal iadesi (PKG-6) `applyPackageChange` Cloud Function'ı tarafından
+doğrudan `confirmed` + `kind:'refund'` olarak yazılır — istemci hiç yazmaz.
 
 **Index:** `tenantId ASC, createdAt DESC` ve `tenantId ASC, memberId ASC, createdAt DESC`
 
@@ -388,6 +391,67 @@ paket seçicisini `kind`'e göre filtreleyerek bunun pratikte hiç
 yaşanmamasını sağlıyor.
 
 **Index:** `tenantId ASC, createdAt DESC`
+
+---
+
+### `package_change_requests` — üye onayı bekleyen paket değişimi (PKG-6)
+| Alan | Tip | Not |
+|---|---|---|
+| `tenantId` / `memberId` / `memberName` | | |
+| `kind` | `'upgrade' \| 'downgrade' \| 'promotion' \| 'addon'` | Yalnızca etiket — yaptırım karşılaştırmadan gelir, `kind`'den değil |
+| `currentPackageAssignmentId` | string? | Değiştirilen `member_packages` dokümanı. **Yoksa saf ekleme** — üyenin o türden hâlâ aktif paketi yok |
+| `currentSummary` / `proposedSummary` | map? / map | Yalnızca görüntüleme — `entitlements`, `price`, `endsAt`, `packageName`. Uygulanan gerçek kaynak `proposedPackageId`/`proposedPromotionId` |
+| `proposedPackageId` | string | `gym_packages` — apply anında **taze** okunur, bu snapshot'a güvenilmez |
+| `proposedPromotionId` | string? | Apply anında hâlâ geçerli mi tekrar kontrol edilir — günler geçmiş olabilir |
+| `priceDelta` | number | + ek ücret · − iade · 0 değişmiyor |
+| `refundAmount` / `refundBasis` | number? / string? | Oransal iade — hesap aşağıda |
+| `note` | string? | |
+| `effectiveAt` / `expiresAt` | Timestamp | |
+| `status` | `'pending' \| 'approved' \| 'rejected' \| 'expired' \| 'cancelled'` | |
+| `createdBy` / `createdAt` / `respondedAt` | | |
+| `appliedAt` | Timestamp? | **Sunucu sahipli idempotency işareti** — istemci hiç yazmaz |
+
+**Akış:** Admin isteği `pending` olarak yaratır (`member_packages`'a hiçbir
+şey yazılmaz) → üyeye push → üye `status`'ü `approved`/`rejected` yapar
+(kendi yazabildiği **tek** alan) → `applyPackageChange` Cloud Function'ı
+`pending→approved` geçişini görüp gerçek işi yapar.
+
+**Neden bir Cloud Function şart — istisna değil, zorunluluk.** `member_packages`
+kuralı **hiçbir** client update'ine izin vermiyor, admin dahil (bkz. o
+koleksiyonun kendi notu). Üyenin onayı yalnızca bu dokümanın `status`
+alanını değiştirebiliyor; eski paketi kapatmak, yenisini açmak, kredi
+defterini güncellemek, promosyon sayacını artırmak, iade kaydı düşmek —
+hiçbiri üyenin (ya da adminin) doğrudan yapabileceği bir şey değil. Bu
+yüzden `applyPackageChange` var: `pending→approved` geçişini izleyen bir
+`onDocumentUpdated` tetikleyicisi, Admin SDK güveniyle çalışıyor.
+
+**Apply anında yeniden doğrulanır, oluşturma anındaki kopyaya güvenilmez.**
+Admin isteği hazırladıktan günler sonra üye onaylayabilir — bu sürede hedef
+paket kilitlenmiş olabilir (önemli değil, içerik zaten donmuş demektir) ama
+bağlı promosyon **süresi dolmuş ya da kontenjanı bitmiş** olabilir.
+`applyPackageChange` promosyonu apply anında yeniden kontrol eder; artık
+geçerli değilse **sessizce düşürülür** — üye onayladığı temel değişikliği
+yine de alır, yalnızca artık geçerli olmayan bir hediyeyi almaz.
+
+**`appliedAt` — idempotency zorunlu.** Cloud Functions tetikleyicileri
+aynı olayı yeniden teslim edebilir. `appliedAt` set edildikten sonra aynı
+`approved` geçişi tekrar tetiklenirse fonksiyon hemen çıkar — aksi halde
+paket ikinci kez atanır, kredi ikinci kez basılır, promosyon iki kez
+harcanır.
+
+**Kurallar:** okuma = kendisi veya kiracı personeli. Yazma: `create`
+yalnızca kiracı yöneticisi (`createdBy == auth.uid`, `status=='pending'`).
+`update` iki yoldan biri — üye kendi isteğinde yalnızca `status`/`respondedAt`
+değiştirip `approved`/`rejected` yapabilir; admin hâlâ `pending` olan bir
+isteği `cancelled` yapıp geri çekebilir (yanıtlanmış bir isteğe artık
+dokunamaz). Silme kapalı.
+
+**Süresi geçen teklif — `expirePendingPackageChangeRequests`** (günlük).
+Cevapsız kalan bir teklif sonsuza kadar `pending` durmaz; admin'in unuttuğu
+bir tuzağa dönüşmesin diye `expired` yapılır.
+
+**Index:** `tenantId + memberId + status + createdAt DESC` (üyenin bekleyen
+teklifleri), `status + expiresAt ASC` (günlük süre-dolum taraması).
 
 ---
 
@@ -553,6 +617,9 @@ ve `payments` için ikinci (legacy) match bloğu.
 | `notifyOnProgramAssigned` | `programs` update | Program atandı push'u |
 | `syncPackageAssignmentCount` | `member_packages` yazım | `gym_packages.activeAssignmentCount` senkronu (PKG-1 kilidinin dayanağı) |
 | `renewEntitlementCredits` | zamanlanmış (günlük, 24 saat) | Periyodik hakları (Platinium'un çeyreklik dersi, kotalı grup dersi) bir sonraki döneme yuvarlar (PKG-2) |
+| `notifyOnPackageChangeRequested` | `package_change_requests` create | Üyeye "paket teklifin var" push'u (PKG-6) |
+| `applyPackageChange` | `package_change_requests` `pending→approved` | Tek yetkili yazar: eski paketi kapatır, yenisini açar, kredi/promosyon/iade işler (PKG-6) |
+| `expirePendingPackageChangeRequests` | zamanlanmış (günlük, 24 saat) | Süresi geçen bekleyen teklifleri `expired` yapar (PKG-6) |
 | `syncMemberEntitlements` | `member_packages` yazım | `member_entitlements` önbelleğini günceller — `classes` rezervasyon kuralının tek okumada kontrol edebilmesi için (PKG-4) |
 
 > Bu tablo eksik: `deleteMyAccount`, `assignMembershipShortCode`,
