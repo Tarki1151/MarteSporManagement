@@ -285,10 +285,53 @@ an bilinçli bir tercih değil, boşluk. Aşağıdaki maddeler bunu kapatmak iç
       açmak gerekiyor ve bu simülatörde dokunmalar kaydedilmiyor (iki kez
       denendi). Tip denetimi ve lint temiz.
 
-- [ ] **D1-5 · Geri bildirim (toast/snackbar) tutarsız.**
+- [x] **D1-5 · Geri bildirim (toast/snackbar) tutarsız.**
       Bazı ekranlarda `setSnack` ile özel bildirim, bazılarında `setError` ile
       satır içi kırmızı metin, bazılarında hiçbir şey.
       **İş:** Tek bir `Toast`/`Snackbar` deseni; hata mesajları için tek stil.
+
+      **Çözüldü (20 Ağustos 2026).** Eski `Snackbar` deseninde üç gerçek hata
+      vardı, sadece tutarsızlık değil:
+
+      1. **Kaydırma içeriğinin sonunda** render ediliyordu. Elli üyelik bir
+         listede onay mesajı ekranın çok altında kalıyordu — kullanıcı hiç
+         görmüyordu.
+      2. **Hiç kapanmıyordu.** Dokunulana kadar orada duruyordu.
+      3. **Butonun etiketi yalan söylüyordu.** Varsayılan `actionLabel`
+         "Geri Al"dı ama `onAction` yalnızca mesajı kapatıyordu — var olmayan
+         bir geri almayı tarif ediyordu. "Ders eklenemedi / Geri Al" gibi
+         anlamsız çiftler çıkıyordu.
+
+      Yerine `components/Toast.tsx`: kök layout'ta tek bir `ToastProvider`,
+      `useToast()` ile `success` / `error` / `show`. Yüzen (tab bar'ın
+      üstünde, güvenli alan farkında), kendi kendine kapanan (hata 5 sn,
+      başarı 3 sn — hata okunur, başarı göz ucuyla görülür), tonuna göre
+      renkli ve ikonlu. Eylem artık isteğe bağlı ve konduğunda gerçek bir iş
+      yapıyor. D0-4 haptik söz dağarcığı da buraya bağlandı — geri bildirim
+      onu kullanmayan tek yerdi.
+
+      **Yol üstünde bulunan asıl boşluk:** yedi yazma işleminin `catch`
+      bloğu **hiç yoktu** — sadece `try/finally`. Hata olduğunda söz vaadi
+      sessizce reddediliyor, kullanıcı hiçbir şey görmüyordu: ödeme kaydetme,
+      ödeme onay/red, check-in yetkisi verme, antrenör rolü verme, üye ödeme
+      bildirimi, program aktifleştirme, takvim paylaşımı. Hepsine hata
+      bildirimi eklendi.
+
+      **Her işleme başarı mesajı konmadı.** Sonucu ekranda zaten görünen
+      işlemler (rol anahtarı canlı snapshot'tan dönüyor, onaylanan ödeme
+      bekleyenlerden geçmişe geçiyor) yalnızca hata durumunda konuşuyor.
+      Her şeyi duyurmak, bildirimleri okunmadan kapatılan gürültüye çevirir.
+
+      **Satır içi form hataları bilinçli olarak korundu.** Onboarding
+      ekranlarındaki `setError` toast'a çevrilmedi: "şifre çok kısa" kaybolan
+      bir bildirim değil, alanın yanında duran kalıcı bir metin olmalı.
+      Kural: **kalıcı satır içi metin = form doğrulaması, geçici toast =
+      işlem sonucu.**
+
+      Ölü kalan `components/Snackbar.tsx` kaldırıldı.
+
+      **Simülatörde görsel olarak doğrulanmadı** — toast'ı tetikleyen her akış
+      oturum açmayı gerektiriyor, bu simülatörde dokunmalar kaydedilmiyor.
 
 - [x] **D1-6 · Antrenör "Üyeler" listesinde arama/sıralama yok.**
       50+ üyeli bir salonda liste kullanılamaz hale gelir.
