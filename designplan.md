@@ -213,7 +213,7 @@ an bilinçli bir tercih değil, boşluk. Aşağıdaki maddeler bunu kapatmak iç
 
 ### D1 — Bilgi mimarisi ve akış (UX)
 
-- [ ] **D1-1 · Üye alt sekmeleri fazla ve dengesiz.**
+- [x] **D1-1 · Üye alt sekmeleri fazla ve dengesiz.**
       5 sekme: Bugün, Üye Kartım, Dersler, Program, Gelişim. "Üye Kartım"
       aslında bir **eylem** (check-in), sekme değil — ve tam ekran bir QR'dan
       ibaret. iOS'ta bu tür şeyler genelde ana ekranda öne çıkan bir kart veya
@@ -222,12 +222,62 @@ an bilinçli bir tercih değil, boşluk. Aşağıdaki maddeler bunu kapatmak iç
       dönüştür (sekmeyi 4'e indir), ya da sekme kalacaksa ekranı zenginleştir
       (bugünkü giriş durumu, son girişler, üyelik bitiş tarihi).
 
-- [ ] **D1-2 · "Bugün" ekranı zayıf.**
+      **Çözüldü (20 Ağustos 2026) — ama teşhis yanlıştı.**
+
+      Ekran "tam ekran bir QR'dan ibaret" değildi: QR'ın altında **gizli bir
+      profil ekranı** vardı — çıkış yap, rol değiştir, salondan ayrıl, yasal
+      metinler, hesabımı sil. Asıl bilgi mimarisi hatası buydu. Yıkıcı hesap
+      işlemleri, üyenin turnikede elinde tuttuğu şeyin bir kaydırma altına
+      gömülmüştü; hesap ayarları ise "Üye Kartım" adlı bir sekmenin arkasında,
+      kimsenin bakmayacağı yerde duruyordu.
+
+      **Sekmeyi kaldırmak yerine ayırdım.** Kaldırmak kapıdaki hızı bozardı:
+      check-in sık ve zamana duyarlı bir eylem, başka bir sekmedeyken QR'a
+      ulaşmak iki dokunuş olurdu. Bunun yerine:
+
+      - `member/card` yalnızca kendi işini yapıyor — QR, kısa kod, isim ve
+        **bugünkü giriş durumu** ("Bugün giriş yapıldı · 09:14"). Bu son
+        madde "kayıt gerçekten geçti mi?" sorusunu resepsiyona geri dönmeden
+        yanıtlıyor; sekmenin varlığını hak etmesini sağlayan da bu.
+      - Hesap işlemleri yeni `member/profile` ekranına taşındı, Bugün
+        başlığındaki avatar düğmesinden açılıyor. Altıncı sekme açmadım:
+        burası ara sıra gidilen bir yer, sürekli geçiş yapılan değil.
+      - Çıkış artık `confirmDestructive` onayı istiyor ve navigasyonu
+        `AuthRedirect`'e bırakıyor (elle `router.replace` çağrısı kalktı).
+
+      **Üyelik bitiş tarihi yapılmadı:** veri modelinde böyle bir alan yok.
+      `expiresAt` yalnızca salonun kendi aboneliğinde (`tenants`), üyelikte
+      değil. Eklenmesi `tenant_memberships` şeması ve tahsilat akışıyla
+      birlikte karar verilmesi gereken bir iş.
+
+- [x] **D1-2 · "Bugün" ekranı zayıf.**
       Sadece bugünün dersi + haftalık antrenman halkası. Üyenin gerçekten
       merak ettikleri yok: bir sonraki PT randevum, ödeme durumum, üyeliğim ne
       zaman bitiyor, bu hafta kaç kez geldim.
       **İş:** Bugün ekranını gerçek bir "gösterge paneli" olarak yeniden
       kurgula. Öncelik sırası: bugünkü eylem → yaklaşan → durum.
+
+      **Çözüldü (20 Ağustos 2026).** İstenen öncelik sırası birebir kuruldu:
+      **bugünkü eylem** (Üye Kartım düğmesi, bugünün dersi) → **yaklaşan**
+      (bir sonraki PT randevusu) → **DURUMUM** (haftalık antrenman halkası +
+      bu hafta kaç kez salona gelindiği, ödeme durumu).
+
+      Ödeme kartı artık pasif bir bağlantı değil: bekleyen bildirim varsa
+      tutarıyla birlikte uyarı renginde, yoksa son onaylanan ödemeyi tarihiyle
+      gösteriyor.
+
+      **Yeni sorgu gerekti:** üyenin kendi PT randevuları. Güvenlik kuralı
+      bunu zaten açıkça izin veriyordu (`memberId == request.auth.uid`) ama
+      hiçbir repo fonksiyonu yoktu — yani üye, kendisi için alınmış bir
+      randevuyu uygulamada hiçbir yerde göremiyordu.
+      `watchUpcomingSessionsForMember` eklendi (`limit(3)`, ana kart yalnızca
+      ilkini gösteriyor). **Composite index gerekiyor ve henüz deploy
+      edilmedi** — `tenantId + memberId + date`. Deploy edilene kadar randevu
+      kartı sessizce boş kalır (sorgu düşer, `watch.ts` sarmalayıcısı loglar).
+
+      Yol üstünde kaldırılan: başlıktaki 🔔 emojisi tıklanabilir görünüyordu
+      ama `Pressable` değildi — sahte bir çağrı. Yerine gerçekten çalışan
+      hesap düğmesi geldi.
 
 - [x] **D1-3 · Boş durumlar (empty states) yetersiz.**
       Çoğu ekran boşken tek satır gri metin gösteriyor. Boş durum, ürünün en
