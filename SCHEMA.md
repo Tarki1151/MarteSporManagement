@@ -193,12 +193,21 @@ dinliyor.
 |---|---|---|
 | `tenantId` / `userId` | string | |
 | `membershipId` | string | `{tenantId}_{userId}` — QR yükü |
+| `accessReason` | `'ok' \| 'no-package' \| 'no-session-today' \| 'frozen'` | Neden içeri alındığı (PKG-3) — `'ok'` dışındakiler personelin "yine de kabul et" ile geçtiği durumlar |
 | `checkedInAt` | Timestamp | |
 
 **Kurallar:** okuma/create = `canCheckIn(tenantId)` — yani yönetici **veya**
 `permissions` içinde `'checkin'` olan personel. Üye kendi kendine giriş
-yapamaz; personel okutmalı. Update/delete kapalı. Mükerrer kayıt engeli
-**yok** (plan.md P2-5).
+yapamaz; personel okutmalı. Update/delete kapalı. **Mükerrer kayıt
+engellenir** — aynı üye 60 dakika içinde tekrar okutulursa
+`already-checked-in` döner (istemci tarafında, `checkinRepo.ts`; kuralda
+değil — bu bir sayım sorgusu, kurallar sayamaz).
+
+**`accessReason` (20 Ağustos 2026, PKG-3):** check-in artık üyenin aktif
+paketini/kredisini okuyup karar veriyor. `'ok'` değilse **giriş yine de
+yapılıyor** — kapıda kararı personel verir, uygulama engellemez — ama sebep
+buraya yazılıyor ki sonradan "kaç kişi paketsiz alındı" raporlanabilsin.
+Bkz. `checkinRepo.ts`'deki `resolveAccess`.
 
 **Index:** `tenantId ASC, checkedInAt ASC`
 

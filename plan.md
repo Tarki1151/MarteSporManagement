@@ -1112,7 +1112,7 @@ ve `functions` derlemesi temiz.
 
 ---
 
-### [ ] PKG-3 · Check-in'de erişim ve paket etiketi
+### [x] PKG-3 · Check-in'de erişim ve paket etiketi
 
 ```
 { ok: true, name: 'Ayşe Şengül',
@@ -1141,6 +1141,43 @@ Başarı ekranı istenen biçimde: **"Ayşe Şengül · Gold"**.
 okunacak**, `tenant_memberships` üzerine denormalize *edilmeyecek* —
 denormalize kopya süre dolduğunda kendi kendine bayatlar ve düzeltmesi
 zamanlanmış fonksiyon ister. Ölçülüp gecikme sorun çıkarırsa optimize edilir.
+
+---
+
+**Çözüldü (20 Ağustos 2026).** `resolveAccess` (`checkinRepo.ts`) plandaki
+5 adımlı karar sırasını birebir uyguluyor. `checkins.accessReason` alanı
+eklendi, kural değeri doğruluyor (`in ['ok','no-package','no-session-today',
+'frozen']`). `CheckInAccessReason` `types.ts`'e taşındı — `CheckIn`
+arayüzünün zaten sahip olması gereken bir alandı.
+
+**Akış plandan bir noktada ayrıştı — bilinçli.** Plan "uyarı ekranında
+'Yine de kabul et' birincil aksiyon" diyordu ama check-in'in ne zaman
+**yazıldığını** açık bırakmıştı. İki yorum mümkündü: (a) giriş her durumda
+hemen yazılır, uyarı yalnızca bilgilendirir; (b) `warn` durumunda yazma
+**duraklar**, personel onaylayana kadar kayıt oluşmaz. (b)'yi seçtim: `ok`
+durumu hâlâ tek adımda, sürtünmesiz yazılıyor (vaka çoğunluğu bu); `warn`
+durumunda personel gerçekten bir karar veriyor ve "Vazgeç" seçeneği var —
+(a) olsaydı "Vazgeç" anlamsız kalırdı, kayıt zaten oluşmuş olurdu.
+`confirmCheckInDespiteWarning` mükerrer kayıt kontrolünü **tekrar** yapıyor:
+uyarı ile onay arasındaki süre gerçek zaman, başka biri aynı üyeyi o arada
+okutmuş olabilir.
+
+**`getMemberPackages`/`getActiveMemberCredits` tek seferlik (one-shot)
+eklendi**, `watchMemberPackages`/`watchMemberCredits`'in yanına — check-in
+tek bir karar anı, abone olunan bir ekran değil; canlı dinleyici gereksiz
+kalırdı. Sıfır yeni composite index gerekti: üçü de (paketler, krediler,
+bugünün randevusu) PKG-1/PKG-2/D1-2'de zaten eklenmiş index'leri
+kullanıyor — sonuç kümesi küçük olduğu için (`limit(10)`) durum/tarih
+filtrelemesi istemci tarafında yapılıyor.
+
+**Açık soru — `expiring-soon` uygulanmadı.** Üstteki JSON şeklinde
+tanımlıydı ama 5 adımlı karar sırası onu hiç üretmiyordu — hangi eşikte
+("3 gün kala mı, 7 gün kala mı?") tetikleneceği plan metninde yoktu.
+`CheckInWarnReason` tipinden çıkarıldı; salon sahibi bir eşik belirlerse
+eklenir.
+
+**Simülatörde doğrulanmadı** — kullanıcı isteğiyle sona ertelendi.
+`tsc --noEmit`, `expo lint` temiz; kural testleri 85 → 86.
 
 ---
 
