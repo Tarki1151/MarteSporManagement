@@ -1021,7 +1021,7 @@ simülatörde dokunmalar güvenilir kaydolmuyor. Bundle'ın hatasız yüklendiğ
 
 ---
 
-### [ ] PKG-2 · Atama ve kota defteri
+### [x] PKG-2 · Atama ve kota defteri
 
 **`member_packages`**
 
@@ -1061,6 +1061,54 @@ gecikse bile ekranda yanlış bakiye görünmez.
 
 **Arayüz:** Salon ayarlarında katalog CRUD (hak anahtarlarıyla); admin üye
 satırından "Paket ata".
+
+---
+
+**Çözüldü (20 Ağustos 2026).** `member_packages` + `member_credits` →
+`memberPackageRepo.ts` → kurallar (85 test, +7) → 4 composite index →
+2 Cloud Function → `admin/member.tsx` (üye detayı: iletişim bilgisi, aktif
+paketler, kalan krediler) + `admin/assign-package.tsx` (katalogdan seçip
+ata) → `admin/members.tsx` satırları artık tıklanabilir → `SCHEMA.md`.
+
+**`sourcePackageId` plandaki gibi `member_packages` dokümanına işaret ediyor,
+`gym_packages`'a değil** — ilk yazımda bunu ters yapmıştım (katalog id'si),
+düzeltildi. Fark önemli: yenileme fonksiyonu "bu kredi hâlâ geçerli mi?"
+sorusunu belirli bir *atamanın* durumuna (`status`, `endsAt`) bakarak
+yanıtlıyor; katalog id'si bir üyenin aynı paketi ikinci kez satın aldığı
+durumda hangi atamadan geldiğini ayırt edemezdi.
+
+**İki Cloud Function:**
+- `syncPackageAssignmentCount` — PKG-1'in kilidini gerçek kılıyor.
+  `activeAssignmentCount` şimdiye kadar hep 0'dı (hiç atama yoktu); artık
+  gerçek sayı.
+- `renewEntitlementCredits` — günlük, Platinium'un çeyreklik dersini ve
+  (açılırsa) kotalı grup dersini bir sonraki döneme yuvarlıyor. Yalnızca
+  kaynak atama hâlâ `active` ve süresi dolmamışsa yeniliyor; sona ermiş bir
+  üyelik yeni kredi üretmeye devam etmiyor.
+
+**`member_packages`/`member_credits` update tamamen kapalı — bilinçli.**
+PKG-2 kapsamında hiçbir client-side "iptal et"/"durdur" özelliği yok.
+Sebebi kapsam disiplini: iptal, dondurma ve süre-dolumu geçişlerinin her
+biri kendi maddesinde (PKG-10, PKG-11, PKG-12) zaten tanımlı ve her biri
+kendi geri alma/kota mantığını taşıyor. Şimdiden yarım bir "iptal" yolu
+açmak o maddelerin işini ikiye bölerdi.
+
+**Atama akışı doğrudan — PKG-6'ya kadar doğru olan budur.** `assignPackageToMember`
+üyeye onay sormuyor; bu yalnızca *ilk/ek* atama için doğru
+("İlk atama onay istemez" — PKG-6). Fonksiyonun kendi doc yorumu ve
+`member_packages` kuralının yorumu bunu açıkça işaretliyor, PKG-6 yazan kişi
+bu fonksiyonu değişiklik yolu için **çağırmamalı**, yerine
+`package_change_requests` akışını kullanmalı.
+
+**Yapılmayanlar, bilerek:** Promosyon seçimi (PKG-5 henüz yok — `finalPrice`
+şimdilik `listPrice`'a eşit). Dondurma arayüzü (PKG-10). Kredi tüketimi/randevu
+akışı (PKG-8) — kredi defteri hazır ama harcama yolu yok. Bir üyenin ders
+paketi süresi doldu diye salon girişinin engellenmesi (PKG-3, sıradaki madde)
+— check-in bu paketleri henüz hiç okumuyor.
+
+**Simülatörde doğrulanmadı — kullanıcının isteği üzerine ertelendi**
+("simülatör kontrollerini en son yapacağız"). `tsc --noEmit`, `expo lint`
+ve `functions` derlemesi temiz.
 
 ---
 

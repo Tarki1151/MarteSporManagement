@@ -74,7 +74,9 @@ dizi bütünüyle yeniden yazılır.
      │       └──► workout_logs  (üyenin programı uygulaması)
      ├──► measurements    (vücut ölçümleri)
      ├──► pt_sessions     (birebir randevu)
-     └──► push_tokens     (cihaz bildirim jetonu)
+     ├──► push_tokens     (cihaz bildirim jetonu)
+     └──► member_packages (gym_packages'tan atanmış, hakları kopyalar)
+             └──► member_credits  (ders/grup dersi kota bakiyesi)
 ```
 
 **Kritik nokta:** `userId` her yerde **Firebase Auth uid**'dir,
@@ -320,6 +322,58 @@ kodunda `if (name === 'Gold')` gibi bir dal **hiçbir yerde yok.**
 
 ---
 
+### `member_packages` — bir üyeye atanmış paket (PKG-2)
+| Alan | Tip | Not |
+|---|---|---|
+| `tenantId` / `memberId` / `memberName` | | `memberName` denormalize |
+| `packageId` / `packageName` / `kind` / `entitlements` / `freezePolicy` | | Atama anında **kopyalanır** — katalog sonra değişse de bu satır değişmez |
+| `listPrice` / `finalPrice` | number | Şimdilik eşit; PKG-5 promosyonla ayrışacak |
+| `promotionId` / `promotionName` / `bonusDays` / `bonusLessons` | | PKG-5, henüz yazılmıyor |
+| `startsAt` / `endsAt` | Timestamp | `membership`: `+durationDays`. `lessons`: `+lessonValidityDays` |
+| `frozenDays` / `freezes` | number / array | PKG-10, henüz yazılmıyor (`0` / `[]`) |
+| `status` | `'active' \| 'frozen' \| 'expired' \| 'cancelled'` | **`status` tek başına güvenilmez** — PKG-12'nin günlük fonksiyonu gelene kadar süresi geçmiş bir paket hâlâ `active` görünebilir. Her zaman `endsAt`'i de kontrol et. |
+| `paymentId` | string? | Ödeme defterine bağ |
+| `assignedAt` / `assignedBy` | | |
+
+**Kurallar:** okuma = kendisi veya kiracı personeli. Yazma = yalnızca
+`create`, ve yalnızca kiracı yöneticisi (`assignedBy == auth.uid`, hedef
+paket `isActive`). **Update/delete tamamen kapalı** — her sonraki geçiş
+(dondurma, iptal, süre dolumu, PKG-6'nın değişimi) sunucu sahipli.
+
+**Değişmezlik uyarısı:** bu doğrudan atama yolu (`assignPackageToMember`)
+yalnızca **ilk/ek atama** için doğru. PKG-6 (`package_change_requests`)
+geldiğinde, zaten paketi olan bir üyenin paketini *değiştirmek* onay akışına
+gitmeli — bu fonksiyon o zaman çağrılmamalı.
+
+---
+
+### `member_credits` — kota bakiyesi, kaynağı ne olursa olsun (PKG-2)
+| Alan | Tip | Not |
+|---|---|---|
+| `tenantId` / `memberId` | | |
+| `kind` | `'ptLesson' \| 'groupClass'` | Tek defter, iki hak türü |
+| `source` | `'purchase' \| 'entitlement'` | Satın alınan ders paketi / periyodik hak |
+| `sourcePackageId` | string | **`gym_packages` değil, `member_packages` dokümanı** — hangi atamadan geldiğini bilmek gerekiyor (yenileme fonksiyonu bunu okuyor) |
+| `total` / `used` | number | `used` **sunucu sahipli**, istemci hiçbir koşulda yazamaz |
+| `startsAt` / `expiresAt` | Timestamp | |
+| `status` | `'active' \| 'exhausted' \| 'expired'` | |
+
+**Kurallar:** okuma = kendisi veya kiracı personeli. Yazma = yalnızca
+`create` (kiracı yöneticisi, `used == 0` zorunlu). **Update/delete kapalı**
+— tüketim (PKG-8) ve iade (PKG-11) henüz yazılmadı, geldiklerinde de
+istemciden değil bir callable'dan (Admin SDK) yazacaklar.
+
+**Tüketim sırası:** krediler `expiresAt` artan sırayla harcanır (önce
+biteni önce) — bunu uygulayan kod henüz yok (PKG-8), ama sıralama zaten
+`watchMemberCredits`'in sorgu sırası.
+
+**`renewEntitlementCredits`** (günlük, `functions/`) her `source:'entitlement'`
+kredisinin süresi dolduğunda bir sonrakini açar — ama yalnızca kaynağı olan
+`member_packages` hâlâ `active` ve süresi dolmamışsa. Aksi halde sessizce
+durur; sona ermiş bir üyelik yeni ders üretmeye devam etmez.
+
+---
+
 ### `pt_sessions` — birebir randevu (grup dersinden ayrı)
 | Alan | Tip | Not |
 |---|---|---|
@@ -391,6 +445,12 @@ ve `payments` için ikinci (legacy) match bloğu.
 | `notifyOnMembershipApproved` | `tenant_memberships` update | Üyelik onaylandı push'u |
 | `notifyOnPaymentStatusChange` | `payments` update | Ödeme onay/ret push'u |
 | `notifyOnProgramAssigned` | `programs` update | Program atandı push'u |
+| `syncPackageAssignmentCount` | `member_packages` yazım | `gym_packages.activeAssignmentCount` senkronu (PKG-1 kilidinin dayanağı) |
+| `renewEntitlementCredits` | zamanlanmış (günlük, 24 saat) | Periyodik hakları (Platinium'un çeyreklik dersi, kotalı grup dersi) bir sonraki döneme yuvarlar (PKG-2) |
+
+> Bu tablo eksik: `deleteMyAccount`, `assignMembershipShortCode`,
+> `promoteFromClassWaitlist`, `syncActiveMemberCount` RM fazında eklendi ama
+> hiç yazılmadı. Buraya dokunan bir sonraki kişi tamamlasın.
 
 Push gönderimi Expo API'sine (`exp.host/--/api/v2/push/send`) Node 22'nin
 yerleşik `fetch`'i ile yapılır; ek bağımlılık yok.
