@@ -101,6 +101,7 @@ düz değer olarak kopyalanır.
 | `branding` | map | `{ appName, primaryColor, accentColor, logoUrl?, themeMode? }` |
 | `ownerUid` | string | Oluşturan kullanıcı; create'te `auth.uid`'e kilitli, sonra değişmez |
 | `address` | string? | Katılım akışında gösterilir; herkese açık olması bilinçli |
+| `cancellationHours` | number? | PT randevu iptalinde kredi iadesi sınırı — yoksa varsayılan 24. Henüz yönetici ayarları ekranı yok, alan elle/backfill ile yazılır (PKG-11, Faz 1.9) |
 
 ⚠️ **İletişim bilgisi bu dokümana yazılmaz.** Salon dokümanı her oturum açmış
 kullanıcıya okunabilir (kodla katılım). Hassas alanlar
@@ -589,6 +590,16 @@ koruduğu garantiyi veriyor.
 | `creditId` | string? | Hangi `member_credits` dokümanı ödedi — üyenin kendi rezervasyonu (PKG-8). Antrenörün/adminin oluşturduğu randevuda yok. **İstemci `creditId` ile doküman oluşturamaz** — yalnızca `bookPtSessions` callable yazar |
 | `createdAt` / `updatedAt` | Timestamp | |
 
+**İptal — yalnızca `cancelPtSession` callable'ından (PKG-11, plan-eng-review
+Faz 1.9).** `creditId`'si olan bir dokümanın `status:'cancelled'` yazımı
+kuralda **herkese** (admin dahil) kapalı — iade kararı atomik verilmesi
+gerektiği için. `status:'completed'` yazımı etkilenmedi, doğrudan yazılabilir.
+
+Politika: antrenör/admin iptali her zaman krediyi iade eder. Üye iptali
+yalnızca randevuya en az `tenants/{tenantId}.cancellationHours` (yoksa
+varsayılan 24 saat) kala yapılırsa iade eder; daha geç olursa kredi yanar.
+Tam tükenmiş (`exhausted`) bir kredi iade edilirse `active`'e geri döner.
+
 **Devir modeli — üç yol:**
 1. Kiracı yöneticisi koşulsuz atar (antrenör gelmediğinde).
 2. Atanmış antrenör kendi randevusunu düzenler.
@@ -697,6 +708,7 @@ ve `payments` için ikinci (legacy) match bloğu.
 | `syncMemberEntitlements` | `member_packages` yazım | `member_entitlements` önbelleğini günceller — `classes` rezervasyon kuralının tek okumada kontrol edebilmesi için (PKG-4) |
 | `syncTrainerBusySlots` | `pt_sessions` yazım (create/update/delete) | `trainer_busy_slots` aynasını senkronlar — kimlik alanları olmadan (PKG-7/8) |
 | `bookPtSessions` | onCall | Üyenin kendi randevusunu alması: müsaitlik + çakışma + kredi yeterliliğini tek transaction'da doğrular, en erken bitecek krediden başlayarak düşer, `pt_sessions` dokümanlarını `creditId` ile yazar (PKG-8) |
+| `cancelPtSession` | onCall | Randevu iptali + kredi iade kararı: antrenör/admin her zaman iade, üye yalnızca `cancellationHours` öncesinde iade (PKG-11, Faz 1.9) |
 
 > Bu tablo eksik: `deleteMyAccount`, `assignMembershipShortCode`,
 > `promoteFromClassWaitlist`, `syncActiveMemberCount` RM fazında eklendi ama
