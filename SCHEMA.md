@@ -299,7 +299,7 @@ kendisi için. **Update/delete kapalı** — geçmiş düzeltilemez.
 
 **Akış:** Yönetici girerse doğrudan `confirmed`. Üye bildirirse `pending` →
 yönetici `confirmed`/`rejected` yapar. **İstisna:** bir paket düşürmesinin
-oransal iadesi (PKG-6) `applyPackageChange` Cloud Function'ı tarafından
+oransal iadesi (PKG-6) `approvePackageChange` callable'ı tarafından
 doğrudan `confirmed` + `kind:'refund'` olarak yazılır — istemci hiç yazmaz.
 
 **Index:** `tenantId ASC, createdAt DESC` ve `tenantId ASC, memberId ASC, createdAt DESC`
@@ -412,39 +412,56 @@ yaşanmamasını sağlıyor.
 | `appliedAt` | Timestamp? | **Sunucu sahipli idempotency işareti** — istemci hiç yazmaz |
 
 **Akış:** Admin isteği `pending` olarak yaratır (`member_packages`'a hiçbir
-şey yazılmaz) → üyeye push → üye `status`'ü `approved`/`rejected` yapar
-(kendi yazabildiği **tek** alan) → `applyPackageChange` Cloud Function'ı
-`pending→approved` geçişini görüp gerçek işi yapar.
+şey yazılmaz) → üyeye push → üye `approvePackageChange` callable'ını çağırır
+(`approve: boolean`) → aynı transaction içinde hem isteğin `status`'ü
+**hem** gerçek paket değişimi uygulanır (plan-eng-review Faz 1.6 — eski adı
+`applyPackageChange`, `onDocumentUpdated` trigger'ıydı).
 
-**Neden bir Cloud Function şart — istisna değil, zorunluluk.** `member_packages`
+**Neden bir callable şart — istisna değil, zorunluluk.** `member_packages`
 kuralı **hiçbir** client update'ine izin vermiyor, admin dahil (bkz. o
-koleksiyonun kendi notu). Üyenin onayı yalnızca bu dokümanın `status`
-alanını değiştirebiliyor; eski paketi kapatmak, yenisini açmak, kredi
-defterini güncellemek, promosyon sayacını artırmak, iade kaydı düşmek —
-hiçbiri üyenin (ya da adminin) doğrudan yapabileceği bir şey değil. Bu
-yüzden `applyPackageChange` var: `pending→approved` geçişini izleyen bir
-`onDocumentUpdated` tetikleyicisi, Admin SDK güveniyle çalışıyor.
+koleksiyonun kendi notu). Bu dokümanın `status` alanına da artık **hiçbir
+istemci** yazamıyor (üye dahil) — eski paketi kapatmak, yenisini açmak,
+kredi defterini güncellemek, promosyon sayacını artırmak, iade kaydı
+düşmek hiçbiri üyenin doğrudan yapabileceği bir şey değil, o yüzden onay
+kararının kendisi de aynı güvenilir yerde alınıyor.
+
+**Trigger'dan callable'a geçişin gerçek sebebi:** eski tasarımda üyenin
+kendi `status:'approved'` yazımı *anında* başarılı görünüyordu — asıl
+paket değişimi ayrı bir trigger'da, o yazımdan *sonra* gerçekleşiyordu.
+Trigger hiç çalışmazsa ya da düşerse istek sonsuza kadar "approved"
+görünüp hiçbir şey uygulanmamış kalabiliyordu. Şimdi ikisi tek transaction;
+üye "onaylandı" sonucunu ancak paket gerçekten değiştiğinde görüyor.
 
 **Apply anında yeniden doğrulanır, oluşturma anındaki kopyaya güvenilmez.**
 Admin isteği hazırladıktan günler sonra üye onaylayabilir — bu sürede hedef
 paket kilitlenmiş olabilir (önemli değil, içerik zaten donmuş demektir) ama
-bağlı promosyon **süresi dolmuş ya da kontenjanı bitmiş** olabilir.
-`applyPackageChange` promosyonu apply anında yeniden kontrol eder; artık
-geçerli değilse **sessizce düşürülür** — üye onayladığı temel değişikliği
-yine de alır, yalnızca artık geçerli olmayan bir hediyeyi almaz.
+bağlı promosyon **süresi dolmuş ya da kontenjanı bitmiş** olabilir. Eski
+davranış promosyonu **sessizce düşürüp** tam fiyata uyguluyordu — bu
+tersine çevrildi (Codex #10): promosyon artık geçerli değilse **tüm swap
+reddedilir**, istek `expired` yapılır, admine "teklifi yenile" bildirimi
+gider. Üye onayladığı indirimsiz tam fiyata asla geçmez.
 
-**`appliedAt` — idempotency zorunlu.** Cloud Functions tetikleyicileri
-aynı olayı yeniden teslim edebilir. `appliedAt` set edildikten sonra aynı
-`approved` geçişi tekrar tetiklenirse fonksiyon hemen çıkar — aksi halde
-paket ikinci kez atanır, kredi ikinci kez basılır, promosyon iki kez
-harcanır.
+**Değiştirilen paketin tenant sınırı ve tekilliği de apply anında
+doğrulanır (Codex #7/#8/#9).** Hedef paket, promosyon ve
+`currentPackageAssignmentId` isteğin kendi `tenantId`'siyle
+karşılaştırılır; `currentPackageAssignmentId` artık `active` değilse
+(başka bir onay onu zaten değiştirmişse) istek reddedilir — sessizce
+ikinci bir aktif paket basmak yerine. Değiştirilen paketin
+`member_credits`'leri de `cancelled` yapılır, yeni paketin kredileriyle
+birlikte harcanabilir durumda kalmaz.
+
+**Idempotency yapısal, ayrı bir işaret gerekmiyor.** Onay, isteğin kendi
+`pending` durumunu aynı transaction içinde okuyup değiştiriyor — yeniden
+denenen/çift tıklanan bir çağrı `approved` (veya `rejected`/`expired`)
+okuyup `failed-precondition` ile reddediliyor. `appliedAt` alanı hâlâ
+`approved` sonucunda set ediliyor (ne zaman uygulandığının kaydı için),
+ama artık davranışı bu alan değil transaction'ın kendisi garanti ediyor.
 
 **Kurallar:** okuma = kendisi veya kiracı personeli. Yazma: `create`
 yalnızca kiracı yöneticisi (`createdBy == auth.uid`, `status=='pending'`).
-`update` iki yoldan biri — üye kendi isteğinde yalnızca `status`/`respondedAt`
-değiştirip `approved`/`rejected` yapabilir; admin hâlâ `pending` olan bir
-isteği `cancelled` yapıp geri çekebilir (yanıtlanmış bir isteğe artık
-dokunamaz). Silme kapalı.
+`update`'in **tek** yolu — admin hâlâ `pending` olan bir isteği `cancelled`
+yapıp geri çekebilir. Üyenin `status`'e hiçbir yazma yolu yok; onay ve red
+ikisi de yalnızca `approvePackageChange` callable'ından geçer. Silme kapalı.
 
 **Süresi geçen teklif — `expirePendingPackageChangeRequests`** (günlük).
 Cevapsız kalan bir teklif sonsuza kadar `pending` durmaz; admin'in unuttuğu
@@ -553,6 +570,14 @@ dersi taşımıyor, o yüzden bu şu an üretimde erişilemeyen bir dal.
 ---
 
 ### `pt_sessions` — birebir randevu (grup dersinden ayrı)
+**Doküman kimliği: `bookPtSessions`'ın yazdıklarında `{tenantId}_{trainerId}_{epochMs}`**
+(plan-eng-review Faz 1.5) — antrenör/admin'in oluşturduğu randevularda hâlâ
+auto-ID. Sebep: sorgula-sonra-auto-ID-yaz deseni Firestore transaction
+izolasyonunun koruduğu bir okuma seti değil; iki eşzamanlı `bookPtSessions`
+çağrısı aynı boş sonucu görüp ikisi de yazabiliyordu (phantom read). Aynı
+dokümanı okumak, Firestore'un optimistic concurrency'sinin gerçekten
+koruduğu garantiyi veriyor.
+
 | Alan | Tip | Not |
 |---|---|---|
 | `tenantId` / `trainerId` / `memberId` | string | |
@@ -667,7 +692,7 @@ ve `payments` için ikinci (legacy) match bloğu.
 | `syncPackageAssignmentCount` | `member_packages` yazım | `gym_packages.activeAssignmentCount` senkronu (PKG-1 kilidinin dayanağı) |
 | `creditRollover` | zamanlanmış (günlük, 24 saat) | Süresi dolan her krediyi expired yapar; entitlement kaynaklıları bir sonraki döneme yuvarlar, tek transaction'da (PKG-2, eski adı renewEntitlementCredits) |
 | `notifyOnPackageChangeRequested` | `package_change_requests` create | Üyeye "paket teklifin var" push'u (PKG-6) |
-| `applyPackageChange` | `package_change_requests` `pending→approved` | Tek yetkili yazar: eski paketi kapatır, yenisini açar, kredi/promosyon/iade işler (PKG-6) |
+| `approvePackageChange` | onCall (eski adı `applyPackageChange`, trigger'dı) | Üyenin onay/red kararı; onayda tek transaction'da eski paketi kapatır, yenisini açar, kredi/promosyon/iade işler, tenant sınırı ve çift-onay/tekillik kontrol eder (PKG-6, Faz 1.6) |
 | `expirePendingPackageChangeRequests` | zamanlanmış (günlük, 24 saat) | Süresi geçen bekleyen teklifleri `expired` yapar (PKG-6) |
 | `syncMemberEntitlements` | `member_packages` yazım | `member_entitlements` önbelleğini günceller — `classes` rezervasyon kuralının tek okumada kontrol edebilmesi için (PKG-4) |
 | `syncTrainerBusySlots` | `pt_sessions` yazım (create/update/delete) | `trainer_busy_slots` aynasını senkronlar — kimlik alanları olmadan (PKG-7/8) |
