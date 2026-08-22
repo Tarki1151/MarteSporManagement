@@ -2094,3 +2094,132 @@ yok, bozulan bir değişikliği geri alma imkânı yok.
       yayınlar — bu kullanıcının kararı.
 
 - [x] CI kuruldu (P5-5).
+
+---
+
+## CEO-REV · Plan incelemesi — 20 Ağustos 2026 (HOLD SCOPE)
+
+`/plan-ceo-review`, HOLD SCOPE modu. Kapsam sabit tutuldu: hata görünürlüğü,
+PKG-1→8 doğrulaması, kritik testler, veri bütünlüğü ve canlı salon cutover'ı.
+Yeni özellik kapsamı eklenmedi.
+
+### Premise challenge — planın kendi sırası ihlal edilmiş
+
+Plan "Önerilen sıra"da **1. P0 tamamı** diyor. P0-1 (IAP aboneliği) hâlâ açıkken
+PKG-1→8 tamamlandı. Yani mağazaya çıkamayan bir uygulamaya sekiz paketlik yeni
+özellik eklendi. Asıl kısıt "özellik eksikliği" değil, **"hiçbiri canlıda
+çalışmıyor ve çalışmadığını görecek bir mekanizma yok"** imiş.
+
+### NOT in scope (bilinçli ertelenenler)
+
+| Madde | Gerekçe |
+|---|---|
+| PKG-9 · Seri randevu | Veri bütünlüğü kapanmadan kolaylık özelliği eklemek riski çoğaltır |
+| PKG-10 · Paket dondurma | Aynı gerekçe; ayrıca PKG-11'e bağımlı |
+| PKG-12 · Raporlama | Aynalar güvenilir olmadan rapor yanlış sayı üretir |
+| P4-1→7 · Ürün boşlukları | HOLD SCOPE dışı; canlı salonun bugünkü sorunu değil |
+| Codex #11 · Değişim ekonomisi | Gerçek ama CRITICAL değil; PKG-11 ile birlikte ele alınmalı |
+| Codex #13 · Tenant saat dilimi | Tek salon tek saat diliminde; beyaz etiket ihracatında zorunlu olacak |
+| Codex #15 · functions monoliti | 1.099 satır; refactor kapsamı, davranış değişmiyor |
+| Paylaşılan scheduling paketi | F4'te sözleşme testi tercih edildi; monorepo karmaşıklığına girilmedi |
+
+### What already exists (yeniden kullanılan)
+
+- `watch.ts` sarmalayıcısı — hata geri çağrısı altyapısı var, yalnızca
+  `console.warn`'dan Sentry'ye bağlanması gerekiyor.
+- `ListSkeleton` — yükleniyor durumu için bileşen zaten mevcut, iki yeni
+  ekranda kullanılmamış.
+- `member_entitlements`'ın `endsAt > request.time` deseni — F6'daki
+  `expiresAt` filtresi bunun birebir kopyası.
+- 102 kural testi + emülatör altyapısı — yeni kural testleri buraya eklenir.
+- `bookPtSessions`'ın isimli `HttpsError` mesajları — kullanıcıya gösterilecek
+  metin sunucuda zaten yazılı, istemci onu atıyor.
+
+### Dream state delta
+
+```
+BUGÜN                       BU TURDAN SONRA              12-AY İDEALİ
+8 paket kodda,        →  8 paket canlıda ve        →  Mağazada, ödeme alan,
+hiçbiri deploy                doğrulanmış, hatalar        çok salonlu, hatası
+edilmemiş, sıfır test,        görünür, veri bütün,        dakikalar içinde
+sıfır hata izleme             51 üye geçirilmiş           fark edilen ürün
+```
+
+Bu tur, ideale giden yolu **açıyor**; P0-1 (IAP) hâlâ tek gerçek yayın engeli
+ve dış hesap kurulumuna bağlı.
+
+### Failure Modes Registry
+
+| Kod yolu | Hata modu | Yakalanıyor? | Test? | Kullanıcı görüyor? | Loglanıyor? |
+|---|---|---|---|---|---|
+| 8 PKG Cloud Function | Hiç deploy edilmemiş | H | H | Sessiz/yanlış davranış | H → **CRITICAL** |
+| 22 × `} catch {}` | İsimli hata yok ediliyor | K (yutuluyor) | H | Genel "tekrar dene" | H → **CRITICAL** |
+| `watch.ts` düşen abonelik | `console.warn` | K | H | Hiçbir şey | Sadece dev → **CRITICAL** |
+| `bookPtSessions` trainerId | Doğrulanmıyor | H | H | Hayalet randevu, kredi yanar | H → **CRITICAL** |
+| `member_credits.expiresAt` | Okurken kontrol yok | H | H | Ölü kredi harcanabilir | H → **CRITICAL** |
+| Check-in son kredi (Codex #1) | `exhausted` sorgudan düşüyor | H | H | Kapıda "paketin yok" | H → **CRITICAL** |
+| `renewEntitlementCredits` (Codex #2) | `exhausted` yenilenmiyor | H | H | Hak kalıcı kayıp | H → **CRITICAL** |
+| `applyPackageChange` trigger (Codex #6) | Trigger düşerse onay askıda | H | H | "Onaylandı" ama paket yok | H → **CRITICAL** |
+| Eski paket kredileri (Codex #9) | İptal edilmiyor | H | H | Çift hak harcama | H → **CRITICAL** |
+| 4 denormalize ayna | Kayma tespiti yok | H | H | Kural yanlış karar verir | H → **WARNING** |
+
+**10 satırın 9'u CRITICAL GAP.**
+
+### Implementation Tasks
+
+Sırayla; T1–T3 bitmeden T14 (deploy) yapılmaz.
+
+- [x] **T1** — functions — Check-in ve yenilemede `exhausted` kredi körlüğünü kapat
+  - Kaynak: Codex #1 ve #2, kodda doğrulandı (`checkinRepo.ts:84`, `functions/src/index.ts:570`)
+  - **Çözüldü (plan-eng-review Faz 1.1+1.2+1.3, 20-22 Ağustos 2026).** `resolveAccess` artık `hasSessionToday`'i kredi kontrolünden bağımsız ve önce çağırıyor — randevunun varlığı tek başına erişim kanıtı. Yenileme `renewEntitlementCredits` → `creditRollover`'a taşındı: `status in ['active','exhausted']` sorguluyor, eski krediyi expire etmek ve yenisini açmak artık tek transaction (deterministik `{creditId}_next` id ile idempotent). Regresyon testleri: mobil `checkinRepo.test.ts`, functions `packages.creditRollover.test.ts`.
+- [x] **T2** — functions — Kredi geçerlilik zinciri: `expiresAt > now` filtresi + randevu tarihinde geçerlilik + günlük `expired` işi
+  - Kaynak: F6 + Codex #5
+  - **Çözüldü (Faz 1.4, aynı tur).** `bookPtSessions` artık `expiresAt > now` filtreli sorguluyor ve her slotu yalnızca KENDİ süresinden önce biten bir kredi ödeyebiliyor (üst toplam yerine slot-bazlı uygunluk). `creditRollover` (T1) günlük expire işini zaten üstleniyor, ayrı bir iş gerekmedi.
+- [x] **T3** — functions — Paket değişikliği bütünlüğü: callable transaction'a taşı (#6), tenant sınırı doğrula (#7), aktif paket tekilliği (#8, #14), eski kredileri iptal et (#9), süresi dolan promosyonda teklifi iptal edip yeniden onay iste (#10)
+  - Kaynak: Codex #6–#10, #14
+  - **Çözüldü (Faz 1.6, en büyük madde).** `applyPackageChange` trigger → `approvePackageChange` callable. Üyenin `status` yazımı kuralda tamamen kapandı; onay/red ikisi de callable'dan. Tenant sınırı, çift-onay reddi (`currentPackageAssignmentId` artık `active` değilse reddediliyor), eski kredilerin `cancelled` yapılması, süresi dolmuş promosyonda tüm swap'ın reddedilip isteğin `expired` yapılması — hepsi uygulandı. 9 emülatör testi.
+- [x] **T4** — functions — `bookPtSessions` slot doğrulaması: ızgara hizası, bitişin pencere içinde kalması, mükerrer slot, süre çakışması
+  - Kaynak: Codex #4
+  - **Çözüldü (Faz 1.5+1.7, aynı tur).** `isWithinAvailability` ızgara hizası ve bitiş kontrolünü de yapıyor artık; mükerrer slot istekte reddediliyor. Ayrıca `pt_sessions` deterministik `{tenantId}_{trainerId}_{epochMs}` id'ye geçti — sorgu+auto-ID'nin verdiği yanlış eşzamanlılık garantisi (phantom read) düzeltildi.
+- [x] **T5** — functions — `bookPtSessions` antrenör yetkisi: üyelik var mı, `active` mi, `roles`'ta `trainer` var mı
+  - Kaynak: F3
+  - **Çözüldü (Faz 1.8, aynı tur).** `trainerMembershipSnap` artık yalnızca isim için değil, varlık/aktiflik/rol için de kontrol ediliyor.
+- [x] **T6** — functions+mobile — PKG-11 (iptal ve iade) — PKG-8'in zorunlu bağımlılığı, atlanamaz
+  - Kaynak: Codex #3
+  - **Çözüldü (Faz 1.9, 22 Ağustos 2026).** Yeni `cancelPtSession` callable: antrenör/admin her zaman iade, üye yalnızca `tenants.cancellationHours` (varsayılan 24s) öncesinde iade. Kredi bağlı bir `pt_sessions` dokümanının doğrudan `status:'cancelled'` yazımı kuralda herkese kapatıldı. Mobil: `trainer/calendar.tsx`'in mevcut iptal yolu callable'a taşındı, üye tarafında hiç olmayan iptal UI'ı `member/index.tsx`'e eklendi. 10 emülatör testi + 1 kural testi.
+- [ ] **T7 (P1, human: ~1g / CC: ~45dk)** — mobile — Hata görünürlüğü: 22 `catch`'te `HttpsError.message` kullan + Sentry entegre et + `watch.ts` oraya raporlasın
+  - Kaynak: F2
+- [ ] **T8 (P1, human: ~1g / CC: ~45dk)** — functions — 4 ayna için günlük mutabakat işi (sapma bulur, düzeltir, raporlar)
+  - Kaynak: F8
+- [ ] **T9 (P1, human: ~1g / CC: ~40dk)** — scripts — Canlı salon cutover: 51 üye için idempotent backfill, önce kuru çalıştırma, etiketli/geri alınabilir
+  - Kaynak: Codex #12. **Salon sahibiyle hangi paket/bitiş tarihi kararı gerekiyor.**
+- [ ] **T10 (P2, human: ~2g / CC: ~1s)** — mobile — Vitest kur; saf mantık testleri: `computeFreeSlots` kenar durumları, oransal iade, `applyPromotionEffect`, `entitlementRows`
+  - Kaynak: F5
+- [ ] **T11 (P2, human: ~2s / CC: ~20dk)** — functions+mobile — `isWithinAvailability` sözleşme testi (aynı vaka tablosu iki tarafta)
+  - Kaynak: F4
+- [ ] **T12 (P3, human: ~15dk / CC: ~5dk)** — mobile — `book-session.tsx` ve `availability.tsx`'te boş `View` yerine `ListSkeleton`
+  - Kaynak: F7
+- [ ] **T13 (P3, human: ~5dk / CC: ~2dk)** — mobile — Tab başlıkları (`title`) commit'lenecek — geri butonu "profile" yazıyordu
+  - Kaynak: Bölüm 11, simülatörde canlı yakalandı, düzeltme yapıldı, **reload ile teyit edilmedi**
+- [ ] **T14 (P1, human: ~1s / CC: ~15dk)** — deploy — T1–T9 bittikten SONRA: 8 fonksiyon + kurallar + indexler deploy, ardından simülatörde PKG-1→8 uçtan uca doğrulama
+  - Kaynak: F1. **Production deploy — kullanıcı onayı zorunlu.**
+
+## GSTACK REVIEW REPORT
+
+| Review | Trigger | Why | Runs | Status | Findings |
+|--------|---------|-----|------|--------|----------|
+| CEO Review | `/plan-ceo-review` | Scope & strategy | 1 | issues_open | mode: HOLD_SCOPE, 9 critical gaps |
+| Outside Voice | codex (plan review) | Independent 2nd opinion | 1 | issues_found | 15 bulgu (9 CRITICAL, 5 HIGH, 1 WARNING); 2'si kodda doğrulandı |
+| Eng Review | `/plan-eng-review` | Architecture & tests (required) | 0 | — | — |
+| Design Review | `/plan-design-review` | UI/UX gaps | 0 | — | — |
+| DX Review | `/plan-devex-review` | Developer experience gaps | 0 | — | — |
+
+**CODEX:** 15 bulgu; #1 (son kredi check-in'i bozuyor) ve #2 (tükenmiş kredi hiç yenilenmiyor) kodda birebir doğrulandı. #3–#9 kabul edildi, T1–T6'ya dağıtıldı. #11/#13/#15 bilinçli ertelendi.
+
+**CROSS-MODEL:** Tek çelişki #10 — süresi dolan promosyonun sessizce düşürülmesi. `plan.md:1412-1419`'daki önceki karar (sessizce düşür, temel değişikliği uygula) **değiştirildi**: teklif iptal edilip yeniden onay istenecek. Gerekçe: PKG-6'nın varlık sebebi "üye onayı olmadan paket değişmez"; onay sonrası fiyatı değiştirmek o ilkeyi deler. Geri kalan 14 bulguda çelişki yok — dış ses, incelemenin kaçırdıklarını buldu.
+
+**VERDICT:** CEO review tamamlandı (HOLD SCOPE, kapsam korundu, 14 görev üretildi). **NOT CLEARED** — eng review çalıştırılmadı ve 9 CRITICAL veri bütünlüğü açığı kapatılmadan T14 (production deploy) yapılamaz.
+
+**Not:** `bun` kurulu olmadığı için `gstack-review-log` doğrulama adımını çalıştıramadı; kayıtlar binding alanları olmadan `main-reviews.jsonl`'e yazıldı. Staleness tespiti bu satırlar için heuristik'e düşer.
+
+NO UNRESOLVED DECISIONS
