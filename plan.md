@@ -747,8 +747,20 @@ render'ı azaltır.
       **Çözüldü.** `firebase.json` → `functions.predeploy` eklendi
       (`npm --prefix "$RESOURCE_DIR" run build`), yeniden deploy edildi ve
       `deleteMyAccount` oluştuğu doğrulandı.
-- [ ] **P5-2 · Hata izleme yok.** Sentry/Crashlytics entegre değil; sahadaki
+- [x] **P5-2 · Hata izleme yok.** Sentry/Crashlytics entegre değil; sahadaki
       çökme ve hatalardan haberimiz olmuyor.
+      **Çözüldü (plan-eng-review Faz 2.2, 24 Ağustos 2026).** Sentry değil
+      **GlitchTip** — aynı Sentry event protokolünü konuşan, gerçekten
+      ücretsiz (1.000 olay/ay, sınırsız kullanıcı/proje), açık kaynaklı bir
+      servis. `@sentry/react-native` (mobil) ve `@sentry/node` (functions)
+      SDK'ları değiştirilmeden, DSN'i GlitchTip'e yönlendirerek kullanıldı.
+      Beklenen iş kuralı hataları (HttpsError'ın bilerek fırlattığı
+      failed-precondition/invalid-argument/vb.) her iki tarafta da filtrelenip
+      raporlanmıyor — yalnızca gerçekten beklenmeyen hatalar GlitchTip'in
+      ücretsiz olay bütçesini harcıyor. Mobil: `EXPO_PUBLIC_SENTRY_DSN` EAS
+      ortam değişkeni olarak eklendi (production/preview/development) —
+      **standalone build'ler bu değişikliği görmek için yeni bir EAS build
+      gerektiriyor**, Metro reload yetmez.
 - [x] **P5-3 · `react-hooks/exhaustive-deps` uyarıları temizlendi (12 → 0).**
       Risk teorik değildi: `workout_logs` index hatası tam da bu gürültünün
       içinde kaybolmuştu (bkz. DEV-1).
@@ -2187,8 +2199,9 @@ Sırayla; T1–T3 bitmeden T14 (deploy) yapılmaz.
 - [x] **T6** — functions+mobile — PKG-11 (iptal ve iade) — PKG-8'in zorunlu bağımlılığı, atlanamaz
   - Kaynak: Codex #3
   - **Çözüldü (Faz 1.9, 22 Ağustos 2026).** Yeni `cancelPtSession` callable: antrenör/admin her zaman iade, üye yalnızca `tenants.cancellationHours` (varsayılan 24s) öncesinde iade. Kredi bağlı bir `pt_sessions` dokümanının doğrudan `status:'cancelled'` yazımı kuralda herkese kapatıldı. Mobil: `trainer/calendar.tsx`'in mevcut iptal yolu callable'a taşındı, üye tarafında hiç olmayan iptal UI'ı `member/index.tsx`'e eklendi. 10 emülatör testi + 1 kural testi.
-- [ ] **T7 (P1, human: ~1g / CC: ~45dk)** — mobile — Hata görünürlüğü: 22 `catch`'te `HttpsError.message` kullan + Sentry entegre et + `watch.ts` oraya raporlasın
+- [x] **T7** — mobile+functions — Hata görünürlüğü: 22 `catch`'te `HttpsError.message` kullan + Sentry entegre et + `watch.ts` oraya raporlasın
   - Kaynak: F2
+  - **Çözüldü (Faz 2.1+2.2, 24 Ağustos 2026).** `data/errors.ts` (reportError/errorMessage) — 24 catch bloğu (dosya değişince 22'den 24'e çıktı) güncellendi. Sentry yerine GlitchTip (aynı protokol, ücretsiz): mobil `@sentry/react-native` + sunucu `@sentry/node`, ikisi de yalnızca beklenmeyen hataları raporluyor. `watch.ts`'in düşen abonelik raporu koşulsuz raporluyor. Mobil taraf yeni EAS build gerektiriyor — henüz build alınmadı.
 - [ ] **T8 (P1, human: ~1g / CC: ~45dk)** — functions — 4 ayna için günlük mutabakat işi (sapma bulur, düzeltir, raporlar)
   - Kaynak: F8
 - [ ] **T9 (P1, human: ~1g / CC: ~40dk)** — scripts — Canlı salon cutover: 51 üye için idempotent backfill, önce kuru çalıştırma, etiketli/geri alınabilir
