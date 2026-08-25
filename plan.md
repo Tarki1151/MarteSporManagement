@@ -2207,14 +2207,18 @@ Sırayla; T1–T3 bitmeden T14 (deploy) yapılmaz.
   - **Çözüldü (Faz 2.3, 25 Ağustos 2026).** `reconcileMirrors` — dördünü de (activeMemberCount, activeAssignmentCount, member_entitlements, trainer_busy_slots) kaynağından yeniden türetip sapmayı düzeltiyor, öksüz kayıtları temizliyor. Günlük değil **haftalık**: `member_packages`/`member_credits` yazma yollarının çoğu `updatedAt` üretmediği için delta tarama şimdilik mümkün değil, tam tarama yapıyor — tek kiracılı pilot ölçeğinde maliyetsiz. 9 emülatör testi.
 - [ ] **T9 (P1, human: ~1g / CC: ~40dk)** — scripts — Canlı salon cutover: 51 üye için idempotent backfill, önce kuru çalıştırma, etiketli/geri alınabilir
   - Kaynak: Codex #12. **Salon sahibiyle hangi paket/bitiş tarihi kararı gerekiyor.**
-- [ ] **T10 (P2, human: ~2g / CC: ~1s)** — mobile — Vitest kur; saf mantık testleri: `computeFreeSlots` kenar durumları, oransal iade, `applyPromotionEffect`, `entitlementRows`
+- [x] **T10** — mobile — Vitest kur; saf mantık testleri: `computeFreeSlots` kenar durumları, oransal iade, `applyPromotionEffect`, `entitlementRows`
   - Kaynak: F5
-- [ ] **T11 (P2, human: ~2s / CC: ~20dk)** — functions+mobile — `isWithinAvailability` sözleşme testi (aynı vaka tablosu iki tarafta)
+  - **Çözüldü (Faz 0.1 + Faz 3.1'de zaten tamamlanmıştı).** `computeFreeSlots` (13 test), `applyPromotionEffect` (4), `computeProratedRefund` (4), `entitlementRows` (5) — hepsi ayrı test dosyalarında.
+- [x] **T11** — functions+mobile — `isWithinAvailability` sözleşme testi (aynı vaka tablosu iki tarafta)
   - Kaynak: F4
-- [ ] **T12 (P3, human: ~15dk / CC: ~5dk)** — mobile — `book-session.tsx` ve `availability.tsx`'te boş `View` yerine `ListSkeleton`
+  - **Çözüldü (Faz 3.2, 25 Ağustos 2026).** `isWithinAvailability` export edildi; 10 vakalık birebir aynı tablo iki repoda da (`sessions.isWithinAvailability.test.ts` ve `availabilityContract.test.ts`) çalışıyor.
+- [x] **T12** — mobile — `book-session.tsx` ve `availability.tsx`'te boş `View` yerine `ListSkeleton`
   - Kaynak: F7
-- [ ] **T13 (P3, human: ~5dk / CC: ~2dk)** — mobile — Tab başlıkları (`title`) commit'lenecek — geri butonu "profile" yazıyordu
-  - Kaynak: Bölüm 11, simülatörde canlı yakalandı, düzeltme yapıldı, **reload ile teyit edilmedi**
+  - **Çözüldü (Faz 3.3, aynı tur).**
+- [x] **T13** — mobile — Tab başlıkları (`title`) commit'lenecek — geri butonu "profile" yazıyordu
+  - Kaynak: Bölüm 11, simülatörde canlı yakalandı, düzeltme yapıldı ve commit'lendi (`5f51b34`).
+  - **Simülatörde reload ile teyit edilmedi** — kullanıcı isteğiyle sona ertelendi (T14'ün simülatör doğrulama adımına dahil).
 - [ ] **T14 (P1, human: ~1s / CC: ~15dk)** — deploy — T1–T9 bittikten SONRA: 8 fonksiyon + kurallar + indexler deploy, ardından simülatörde PKG-1→8 uçtan uca doğrulama
   - Kaynak: F1. **Production deploy — kullanıcı onayı zorunlu.**
 
