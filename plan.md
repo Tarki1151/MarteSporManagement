@@ -2205,8 +2205,13 @@ Sırayla; T1–T3 bitmeden T14 (deploy) yapılmaz.
 - [x] **T8** — functions — 4 ayna için mutabakat işi (sapma bulur, düzeltir, raporlar)
   - Kaynak: F8
   - **Çözüldü (Faz 2.3, 25 Ağustos 2026).** `reconcileMirrors` — dördünü de (activeMemberCount, activeAssignmentCount, member_entitlements, trainer_busy_slots) kaynağından yeniden türetip sapmayı düzeltiyor, öksüz kayıtları temizliyor. Günlük değil **haftalık**: `member_packages`/`member_credits` yazma yollarının çoğu `updatedAt` üretmediği için delta tarama şimdilik mümkün değil, tam tarama yapıyor — tek kiracılı pilot ölçeğinde maliyetsiz. 9 emülatör testi.
-- [ ] **T9 (P1, human: ~1g / CC: ~40dk)** — scripts — Canlı salon cutover: 51 üye için idempotent backfill, önce kuru çalıştırma, etiketli/geri alınabilir
+- [x] **T9** — scripts — Canlı salon cutover: 51 üye için idempotent backfill, önce kuru çalıştırma, etiketli/geri alınabilir
   - Kaynak: Codex #12. **Salon sahibiyle hangi paket/bitiş tarihi kararı gerekiyor.**
+  - **Uygulandı (25 Ağustos 2026).** Karar: Silver paketi (yeni oluşturuldu — `gym_packages` bu tenant için tamamen boştu, `tarabya-marte` PKG-1'den önce göç ettiği için hiç `seedDefaultPackages` görmemiş; 0₺ placeholder, yalnızca `gymAccess`), bitiş 1 Kasım 2026. `scripts/backfill_silver_2026-11-01.cjs` — dry-run ile doğrulandı (51 aday, 0 atlanan), `--apply` ile gerçek yazım yapıldı: 1 `gym_packages` + 51 `member_packages`, hepsi `backfillBatch` etiketli (`--revert [--apply]` ile toplu geri alınabilir).
+
+    **Sıralama sapması, bilerek not düşülüyor:** Faz 4 planı backfill'in *deploy'dan sonra* (trigger'lar canlıyken) koşmasını öngörüyordu ki `activeAssignmentCount`/`member_entitlements` otomatik dolsun. Sekiz fonksiyon T14'te henüz deploy edilmediği için bu 51 yazım o aynalara şu an yansımıyor (`gym_packages.activeAssignmentCount` hâlâ 0). Veri bozulması değil — `reconcileMirrors` (T8) tam bunun için var; T14'te deploy olunca (veya elle tetiklenince) kendiliğinden düzelir.
+
+    **Ayrıca:** `scripts/` altındaki 8 eski script (artık kırık `admin.apps`/`admin.credential.cert`/`admin.firestore()` API'siyle yazılmış — firebase-admin@14 flat/modular API'ye geçmiş) kullanıcı isteğiyle silindi; `package.json`'daki ölü referansları da kaldırıldı.
 - [x] **T10** — mobile — Vitest kur; saf mantık testleri: `computeFreeSlots` kenar durumları, oransal iade, `applyPromotionEffect`, `entitlementRows`
   - Kaynak: F5
   - **Çözüldü (Faz 0.1 + Faz 3.1'de zaten tamamlanmıştı).** `computeFreeSlots` (13 test), `applyPromotionEffect` (4), `computeProratedRefund` (4), `entitlementRows` (5) — hepsi ayrı test dosyalarında.
