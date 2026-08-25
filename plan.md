@@ -2202,8 +2202,9 @@ Sırayla; T1–T3 bitmeden T14 (deploy) yapılmaz.
 - [x] **T7** — mobile+functions — Hata görünürlüğü: 22 `catch`'te `HttpsError.message` kullan + Sentry entegre et + `watch.ts` oraya raporlasın
   - Kaynak: F2
   - **Çözüldü (Faz 2.1+2.2, 24 Ağustos 2026).** `data/errors.ts` (reportError/errorMessage) — 24 catch bloğu (dosya değişince 22'den 24'e çıktı) güncellendi. Sentry yerine GlitchTip (aynı protokol, ücretsiz): mobil `@sentry/react-native` + sunucu `@sentry/node`, ikisi de yalnızca beklenmeyen hataları raporluyor. `watch.ts`'in düşen abonelik raporu koşulsuz raporluyor. Mobil taraf yeni EAS build gerektiriyor — henüz build alınmadı.
-- [ ] **T8 (P1, human: ~1g / CC: ~45dk)** — functions — 4 ayna için günlük mutabakat işi (sapma bulur, düzeltir, raporlar)
+- [x] **T8** — functions — 4 ayna için mutabakat işi (sapma bulur, düzeltir, raporlar)
   - Kaynak: F8
+  - **Çözüldü (Faz 2.3, 25 Ağustos 2026).** `reconcileMirrors` — dördünü de (activeMemberCount, activeAssignmentCount, member_entitlements, trainer_busy_slots) kaynağından yeniden türetip sapmayı düzeltiyor, öksüz kayıtları temizliyor. Günlük değil **haftalık**: `member_packages`/`member_credits` yazma yollarının çoğu `updatedAt` üretmediği için delta tarama şimdilik mümkün değil, tam tarama yapıyor — tek kiracılı pilot ölçeğinde maliyetsiz. 9 emülatör testi.
 - [ ] **T9 (P1, human: ~1g / CC: ~40dk)** — scripts — Canlı salon cutover: 51 üye için idempotent backfill, önce kuru çalıştırma, etiketli/geri alınabilir
   - Kaynak: Codex #12. **Salon sahibiyle hangi paket/bitiş tarihi kararı gerekiyor.**
 - [ ] **T10 (P2, human: ~2g / CC: ~1s)** — mobile — Vitest kur; saf mantık testleri: `computeFreeSlots` kenar durumları, oransal iade, `applyPromotionEffect`, `entitlementRows`
