@@ -707,6 +707,7 @@ ve `payments` için ikinci (legacy) match bloğu.
 | `expirePendingPackageChangeRequests` | zamanlanmış (günlük, 24 saat) | Süresi geçen bekleyen teklifleri `expired` yapar (PKG-6) |
 | `syncMemberEntitlements` | `member_packages` yazım | `member_entitlements` önbelleğini günceller — `classes` rezervasyon kuralının tek okumada kontrol edebilmesi için (PKG-4) |
 | `syncTrainerBusySlots` | `pt_sessions` yazım (create/update/delete) | `trainer_busy_slots` aynasını senkronlar — kimlik alanları olmadan (PKG-7/8) |
+| `reconcileMirrors` | zamanlanmış (haftalık, pazartesi 03:00) | 4 aynayı (`tenants.activeMemberCount`, `gym_packages.activeAssignmentCount`, `member_entitlements`, `trainer_busy_slots`) kaynağından yeniden türetip sapmayı düzeltir — trigger'lar hiç tetiklenmezse tek güvence budur (Faz 2.3) |
 | `bookPtSessions` | onCall | Üyenin kendi randevusunu alması: müsaitlik + çakışma + kredi yeterliliğini tek transaction'da doğrular, en erken bitecek krediden başlayarak düşer, `pt_sessions` dokümanlarını `creditId` ile yazar (PKG-8) |
 | `cancelPtSession` | onCall | Randevu iptali + kredi iade kararı: antrenör/admin her zaman iade, üye yalnızca `cancellationHours` öncesinde iade (PKG-11, Faz 1.9) |
 
