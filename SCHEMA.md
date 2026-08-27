@@ -127,8 +127,7 @@ koleksiyonları kendi `isAdmin()` kontrollerini korur.
 | `userId` | string | Firebase Auth uid |
 | `tenantId` | string | |
 | `tenantCode` / `tenantName` | string | Denormalize kopya |
-| `roles` | `MembershipRole[]` | **Bir kullanıcının bir salonda birden çok rolü olabilir** (küçük salonda sahip genelde antrenör de). Roller örtük değildir, açıkça verilir. |
-| `role` | `MembershipRole` | **Legacy** — `roles` göçü sırasında korunuyor, eski build'ler bunu okuyor. Tüm istemciler güncellendikten sonra silinecek. |
+| `roles` | `MembershipRole[]` | **Bir kullanıcının bir salonda birden çok rolü olabilir** (küçük salonda sahip genelde antrenör de). Roller örtük değildir, açıkça verilir. Tek doğruluk kaynağı — eski tekil `role` alanı 27 Ağustos 2026'da tamamen kaldırıldı (`scripts/drop_legacy_role_field.cjs`). |
 | `permissions` | `MembershipPermission[]` | Yöneticinin devrettiği dar yetenekler. Şu an tek değer: `'checkin'`. |
 | `status` | `'pending' \| 'active' \| 'rejected' \| 'suspended'` | |
 | `userDisplayName` / `userEmail` | string? | Denormalize — istemci başka kullanıcının Auth profilini okuyamaz, onay ekranı bu kopyaya muhtaç |
@@ -136,11 +135,15 @@ koleksiyonları kendi `isAdmin()` kontrollerini korur.
 | `phone` / `birthDate` | string? / Timestamp? | Yalnızca marte06'dan taşınan üyelerde — bkz. aşağı |
 | `requestedAt` / `approvedAt` | Timestamp | |
 
-**Kurallar:** okuma = kendisi veya kiracı personeli (`isTenantStaff`).
-Create = yalnızca kendisi için `member`/`pending`; istisna: kiracıyı yeni
-kuran `ownerUid` kendine `admin`/`active` verebilir. Update = yalnızca kiracı
-yöneticisi ve yalnızca `status`, `approvedAt`, `roles`, `role`,
-`permissions` alanları — ayrıca **yönetici kendi `admin` rolünü
+**Kurallar:** okuma = kendisi veya kiracı personeli (`isTenantStaff`);
+ayrıca aynı salonun **aktif üyesi**, o salonun `roles` içinde `trainer`
+bulunan kayıtlarını okuyabilir — PKG-8'in randevu akışı "antrenör seç" ile
+başlıyor, listenin randevu alan kişiye görünmesi gerekiyor. Bilinçli olarak
+dar: üye hâlâ salonun diğer **üyelerini** listeleyemez.
+Create = yalnızca kendisi için `roles: ['member']`/`pending`; istisna:
+kiracıyı yeni kuran `ownerUid` kendine `roles: ['admin']`/`active` verebilir.
+Update = yalnızca kiracı yöneticisi ve yalnızca `status`, `approvedAt`,
+`roles`, `permissions` alanları — ayrıca **yönetici kendi `admin` rolünü
 düşüremez** (salonu yönetimsiz bırakmasın).
 
 **Rol anlamları**

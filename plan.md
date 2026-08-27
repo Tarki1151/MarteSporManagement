@@ -1585,6 +1585,255 @@ harcayarak randevu alabiliyor.
 
 ---
 
+### [ ] UX-4 · Antrenör çalışma saatleri ekranı: genel UX yenilemesi gerekiyor
+
+`trainer/availability.tsx`'teki gün açma akışı kullanışsız bulundu (26 Ağustos
+2026, kullanıcı testi). Bugünkü haliyle:
+
+- Başlangıç ve Bitiş saat listeleri (06:00–22:00, tek tek chip'ler) birbirinden
+  bağımsız — bitiş listesi başlangıçtan önceki saatleri de gösteriyor (örn.
+  başlangıç 17:00 seçilse bile bitiş listesinde 06:00–16:00 hâlâ tıklanabilir).
+  Bitişin başlangıçtan önce olması zaten anlamsız bir durum, seçilebilir bile
+  olmamalı.
+- Salonun kendi çalışma saatleri hiç dikkate alınmıyor — antrenör salonun açık
+  olmadığı bir saat aralığını da seçebiliyor.
+- Gün ve saat seçimi genel olarak fazla adımlı/hantal (7 gün × 2 saat listesi ×
+  17 chip) — daha basit bir etkileşim modeli (örn. tek bir saat aralığı
+  seçici/slider, ya da "her gün aynı saatler" kısayolu) değerlendirilmeli.
+
+**İstenen davranış** (kullanıcı notu):
+- Başlangıç saati seçildikten **sonra**, Bitiş listesinde yalnızca o saatten
+  **sonraki** saatler gösterilsin (geri bir saatte bitiş zaten mümkün değil).
+- Gösterilen saatler salonun kendi çalışma saatleri **içinde** kalsın.
+- Gün ve saat girişleri daha basit/az adımlı olacak şekilde yeniden tasarlanmalı.
+
+Kapsamı bir UX tasarım kararı gerektirdiği için şimdilik uygulanmadı, buraya
+not düşüldü — ileride ele alınacak.
+
+---
+
+### [x] UX-5 · Üye "Randevu al" ekranı ilk açılışta antrenör listesini boş gösteriyordu
+
+**Bulgu (26 Ağustos 2026, kullanıcı testi):** üye "Randevu al" ekranına ilk
+girişte antrenör listesi hiç gelmedi ("Henüz antrenör yok" boş durumu),
+ekrandan çıkıp tekrar girince liste doğru geldi.
+
+**Kök neden:** [`member/trainers.tsx`](gymentra-mobile/src/app/member/trainers.tsx)
+`loading` state'ini `useState(!!activeTenant)` ile mount anında hesaplıyordu.
+`AuthContext`'in `activeTenant`'ı henüz yüklemediği ilk render'da bu `false`
+oluyor — yani gerçekte hâlâ yükleniyorken ekran "yükleniyor" değil "antrenör
+yok" durumunu gösteriyordu. `activeTenant` asenkron gelip effect yeniden
+çalıştığında liste düzelirdi, ama kullanıcı o arada boş ekranı görmüş oluyordu.
+
+**Çözüm:** `loading` her zaman `true` ile başlatılır; yalnızca
+`watchActiveTrainers`'ın gerçek sonucu (veri veya hata) geldiğinde `false`
+olur — `book-session.tsx`'teki `availability === undefined` desteğiyle aynı
+yaklaşım. `tsc --noEmit` temiz.
+
+---
+
+### [x] UX-6 · PT randevuları üyenin "Dersler" takviminde hiç görünmüyordu
+
+**Bulgu (26 Ağustos 2026, kullanıcı testi):** üye antrenörden randevu aldı,
+antrenör kendi takviminde görebildi, ama üye "Bugün" ekranındaki "YAKLAŞAN
+RANDEVU" kartında randevuyu görse de "Dersler" sekmesindeki takvimde o günü
+seçince "Bu güne planlanmış ders yok" diyordu.
+
+**Kök neden:** kod hatası değil, kapsam boşluğu. `member/classes.tsx`
+(Dersler ekranı) yalnızca `watchClassesForTenant` ile grup derslerini
+sorguluyordu — PKG-7/8'in PT randevu modeli (`pt_sessions`) hiç
+sorgulanmıyordu. İki özellik ayrı zamanlarda eklenmiş ve hiç birleştirilmemiş.
+
+**Çözüm:**
+- `ptSessionRepo.ts`'e `watchSessionsForMember(tenantId, memberId, range, ...)`
+  eklendi — `watchSessionsForTrainer`'ın üye tarafındaki eşi, aynı ay
+  penceresi deseniyle (mevcut kural ve index zaten üyenin kendi randevusunu
+  okumasına izin veriyordu, yeni index gerekmedi).
+- `member/classes.tsx`: aynı `range`'i kullanarak PT randevularını da çekiyor,
+  takvimin gün noktası sayaçlarına (`countsByDay`) dahil ediyor, ve grup
+  dersleri listesinin altına ayrı bir "ÖZEL DERS" bölümü ekliyor (saat,
+  antrenör adı, süre, İptal et — `member/index.tsx`'teki iptal akışıyla aynı
+  onay/toast deseni: iade olup olmadığına göre farklı mesaj).
+- `tsc --noEmit` ve `npx expo lint` temiz. Simülatörde ve kullanıcının kendi
+  cihazında doğrulandı (1 Eylül'e gidince "ÖZEL DERS" altında randevu görünür
+  oldu).
+
+---
+
+### [x] UX-8 · Üye "Randevu al" ekranı: antrenör listesi yüklenmiyor / sonsuz bekliyor
+
+**Bulgu (27 Ağustos 2026, kullanıcı testi):** üye "Randevu al" ekranında
+"Antrenör listesi yüklenemedi" hatası; ikinci girişte hata bile vermeden
+boş bir liste ile sonsuza kadar bekliyor.
+
+**İki ayrı kök neden vardı:**
+
+**1. Güvenlik kuralı — üye antrenör listesini hiç okuyamıyordu.**
+`tenant_memberships` okuma kuralı yalnızca *kendisi* veya *kiracı personeli*
+(admin/antrenör) izni veriyordu. PKG-8'in randevu akışı ise "antrenör seç"
+ile başlıyor — yani düz bir **üyenin** antrenör kayıtlarını okuması gerekiyor.
+Kural bunu reddediyordu → `permission-denied`. Yani üye bu ekranı hiçbir
+zaman kullanamıyordu; PKG-8 canlıda fiilen çalışmıyordu.
+
+*Çözüm:* aktif üye, kendi salonunun `roles` içinde `trainer` bulunan
+kayıtlarını okuyabilir. Bilinçli olarak dar — üye hâlâ salonun diğer
+**üyelerini** listeleyemez (`memberName`'in her yerde denormalize olmasının
+gizlilik gerekçesi korunuyor). 4 yeni kural testi eklendi (üye antrenörü
+okur / başka üyeyi okuyamaz / başka salonun antrenörünü okuyamaz / pending
+üye okuyamaz).
+
+**2. `sharedWatch` hatadan sonra kalıcı olarak takılıyordu.**
+`sharedWatch.ts` bir dinleyici hata verdiğinde `stop`'u dolu, `hasValue`'yu
+`false` bırakıyordu. İkinci girişte yeni abone ne yeni dinleyici başlatıyor
+(zaten biri var) ne de kayıtlı bir değer alıyor (hiç değer üretilmemiş) —
+`onChange` da `onError` da hiç çağrılmıyor, ekran sonsuza kadar `loading`
+durumunda kalıyordu. Tam olarak kullanıcının tarif ettiği "hata bile vermeden
+bekletiyor" davranışı.
+
+*Çözüm:* `Entry`'ye `lastError` eklendi; başarısız bir dinleyiciye geç
+katılan abone kayıtlı hatayı hemen alıyor (ilk değer geldiğinde temizleniyor).
+
+**Not:** bu hata `sharedWatch` kullanan **her** ekranı etkiliyordu
+(`watchActiveTrainers`, `watchTenantMembers`, program listeleri) — antrenör
+listesinde görünmesinin sebebi, kural hatası yüzünden orada garanti bir hata
+üretiliyor olmasıydı.
+
+106 kural testi + 48 mobil test geçiyor. Kurallar production'a deploy edildi
+(27 Ağustos 2026).
+
+---
+
+### [x] UX-9 · Legacy `role` alanı tamamen kaldırıldı
+
+**İstek (27 Ağustos 2026):** UX-8'in kural hatası, aynı bilginin iki alanda
+(`role` tekil + `roles` dizi) tutulmasından besleniyordu — kullanıcı "eski
+alanları tamamen geçersiz hale getirelim ki karışıklık olmasın" dedi.
+
+**Önce doğrulandı:** production'daki 58 `tenant_memberships` kaydının
+**hepsinde her iki alan da var** ve hiç uyuşmazlık yok (`role` her zaman
+`roles` içinde). Yani `role` saf fazlalık, bilgi kaybı olmadan silinebilir.
+
+**Kaldırılan yerler:**
+- `firestore.rules`: `membershipRoles()` fallback'i, antrenör okuma kuralı,
+  kendi üyeliğini bitirme kuralı, `allow create` (artık `roles: ['member']`
+  bekliyor), `allow update`'in `changedKeys` listesi.
+- `gymentra-mobile`: `convert.ts` okuma fallback'i, `membershipRepo.ts`'in
+  iki yazma yolu (`requestMembership`, `setMembershipRoles`),
+  `tenantRepo.ts`'in salon kurma yolu.
+- `tests/firestore.rules.test.ts`: tüm seed'ler `roles` dizisine çevrildi,
+  anlamsızlaşan "legacy docs still work" testi silindi.
+- `SCHEMA.md`: `role` satırı çıkarıldı, kural açıklaması güncellendi.
+
+**Veri göçü:** `scripts/drop_legacy_role_field.cjs` — idempotent, önce kuru
+çalıştırma, `roles` `role`'ü kapsamıyorsa o kaydı atlayıp uyarıyor. 58/58
+kayıt temizlendi, sonrasında doğrulandı (`role` olan: 0, `roles` eksik: 0).
+
+**Bilinen geçici etki:** cihazlardaki **eski build'ler** rol atarken hâlâ
+`role` yazıyor; yeni kural bunu reddediyor. Yani eski build'de "rol
+değiştirme" çalışmaz, yeni build'e geçince düzelir. Diğer akışlar etkilenmez
+(okuma yolları zaten `roles`'ü tercih ediyordu).
+
+---
+
+### [ ] UX-7 · Güncellenebilen ekranlara "aşağı çekerek yenile" eklenmeli
+
+**İstek (26 Ağustos 2026, kullanıcı notu):** liste/takvim gösteren ekranlarda
+(Bugün, Dersler, Randevularım, Üyelerim, antrenör Takvim'i vb.) standart iOS
+pull-to-refresh jesti yok. Bu ekranlar zaten canlı `onSnapshot` dinleyicileriyle
+güncel kalıyor, ama kullanıcı alışkanlığı gereği elle "çekip yenileme" isteği
+mantıklı — özellikle bağlantı kısa süre koptuysa görsel bir "tazelendi" geri
+bildirimi sağlar.
+
+Kapsam: hangi ekranların gireceğine karar verilmeli (muhtemelen tüm
+`ScrollView`/liste ekranları), `RefreshControl` sarmalaması gerekecek. Henüz
+uygulanmadı, ileride ele alınacak.
+
+---
+
+### [~] OPS-1 · TestFlight'a geçiş
+
+**İstek (26 Ağustos 2026):** daha fazla test kullanıcısına ulaşmak için
+şu anki ad-hoc dağıtımdan (link ile doğrudan kurulum, `preview` profili —
+cihaz kaydı gerektiriyor, tek tek UDID eklemek gerekiyor) TestFlight'a
+geçilecek (sınırsız test kullanıcısı, UDID kaydı gerekmez).
+
+**Denendi, tek engelde durdu (26 Ağustos 2026):**
+`eas build --platform ios --profile production --non-interactive` şu hatayı
+verdi: *"Distribution Certificate is not validated for non-interactive
+builds... Credentials are not set up. Run this command again in interactive
+mode."* — App Store dağıtım sertifikası Apple sunucularında interaktif
+Apple ID (+2FA) doğrulaması istiyor; bu ajan headless çalıştığı için bunu
+yapamıyor. **Tek bir kerelik manuel adım gerekiyor, kullanıcıdan.**
+
+**Çözüm yolu — App Store Connect API Key (bir kerelik kurulum, sonrası tam
+otomatik):**
+1. https://appstoreconnect.apple.com/access/integrations/api → "Users and
+   Access" → "Integrations" → "App Store Connect API" sekmesi.
+2. Yeni anahtar oluştur, rol **Admin** (hem sertifika/profil yönetimi hem
+   TestFlight'a submit için gerekli).
+3. İnen `.p8` dosyasını (Apple yalnızca **bir kez** indirtir, kaybedilirse
+   yeni anahtar gerekir) ve sayfada görünen **Key ID** ile **Issuer ID**'yi
+   sakla.
+4. Dosyayı ve iki ID'yi bu ajana ilet (dosyayı doğrudan `.p8` içeriğini
+   sohbete yapıştırmak yerine, aynı makinede olduğumuz için bir dosya yoluna
+   kaydedip yolunu söylemek yeterli).
+
+Bu geldikten sonra ajan tarafında yapılacaklar (kullanıcı müdahalesi
+gerekmeden):
+- `.p8` dosyası `gymentra-mobile/secrets/` altına taşınır (zaten
+  `.gitignore`'da).
+- `eas.json`'ın `submit.production` bölümüne `ascApiKeyPath`, `ascApiKeyId`,
+  `ascApiKeyIssuerId` eklenir.
+- `eas build --platform ios --profile production --non-interactive` —
+  sertifika artık API key ile doğrulanacağı için interaktif adım gerekmez.
+- `eas submit --platform ios --non-interactive` — App Store Connect'te uygulama
+  kaydı yoksa API key'in Admin yetkisiyle otomatik oluşturulur, build
+  TestFlight'a yüklenir.
+- İç test grubuna (Internal Testing) e-posta ile ekleme yapılır; harici
+  testçiler için Apple'ın **Beta App Review**'ından geçmesi gerekir (genelde
+  saatler sürer, ilk sürümde 1-2 gün de sürebilir — bu App Store inceleme
+  süreci, bizim kontrolümüzde değil).
+
+**Risk değerlendirmesi:** bu geçiş şu anki `preview` (ad-hoc) akışını
+**bozmaz** — ikisi paralel, farklı `eas.json` profilleri. Geliştirme
+tempo'suna dokunmaz, sadece dağıtım kanalı eklenir. Tek kalıcı risk: `.p8`
+anahtarı Admin yetkili — commit edilmemesi ve gitignore'da kalması kritik
+(zaten `secrets/` bu şekilde kullanılıyor, bkz. `backfill_*.cjs` scriptleri).
+
+#### İlerleme (26 Ağustos 2026)
+
+- Kullanıcı App Store Connect API Key oluşturdu (Admin rol, Key ID
+  `DLVPQCL56S`), `.p8` dosyasını `gymentra-mobile/secrets/` altına taşıdık
+  (zaten `.gitignore`'da, `marte06/secrets/` ile aynı desen).
+- `eas.json`'ın `submit.production.ios` bölümüne `ascApiKeyPath`,
+  `ascApiKeyId`, `ascApiKeyIssuerId`, `ascAppId` eklendi.
+- İlk App Store dağıtım sertifikası **kullanıcı tarafından interaktif**
+  oluşturuldu (`npx eas build --profile production` — ASC API key sayesinde
+  Apple ID/2FA sormadı, yalnızca sertifika oluşturma onayı istedi). Bundan
+  sonraki production build'ler tam headless çalışabilir (sertifika artık
+  EAS sunucularında kayıtlı).
+- `eas submit --platform ios --id 07166982-13ed-4cea-8860-94d79f46aa04
+  --non-interactive` başarılı — build App Store Connect'e yüklendi
+  (submission `82a7ad82-8965-43f3-8882-adef99a04819`). Apple işliyor
+  (~5-10 dk), bitince https://appstoreconnect.apple.com/apps/6802950274/testflight/ios
+  üzerinden görünür olacak.
+- Harici test grubu **"GymEntra Beta Testçileri"** oluşturuldu (App Store
+  Connect API üzerinden, `betaGroups`), 3 test kullanıcısı eklendi:
+  `basak.cicek@icloud.com`, `hakan_ioglu@hotmail.com`,
+  `tuncdemircioglu@gmail.com`.
+- Beta App Review için gerekenler dolduruldu: `betaAppReviewDetails`
+  (iletişim: Tarkan Çiçek, demo hesap: `trainer.test.tarabya@example.com` /
+  `48162026`), `betaAppLocalizations` (açıklama, gizlilik politikası URL'i
+  `https://gymentra.salt-tech-apps.com/privacy/`), build'in `betaBuildLocalizations`'ı
+  ("what to test" notu).
+- Build gruba eklendi ve `betaAppReviewSubmissions` ile incelemeye
+  gönderildi — durum **WAITING_FOR_REVIEW**. Apple'ın Beta App Review'u
+  bizim kontrolümüzde değil (genelde saatler, ilk sürümde 1-2 gün de
+  sürebilir). Onaylanınca 3 test kullanıcısına otomatik davet e-postası
+  gider.
+
+---
+
 ### [ ] PKG-9 · Seri randevu (haftalık tekrar)
 
 Salon sahibinin istediği kolaylık: *"antrenörün her cuma 08:00–09:00 zamanını
@@ -1836,6 +2085,21 @@ güvenlik kuralları duruyor. Bir süre gözlemledikten sonra:
   kaldırılabilir.
 Acele edilmemeli — arşiv alındı ama geri dönüş kolaylığı için veri yerinde
 bırakıldı.
+
+**Güncel envanter (27 Ağustos 2026, production sayımı):**
+`lessons` 146 · `members` 51 · `assigned_packages` 9 · `payments` 9
+(GymEntra kayıtlarıyla **karışık** — ayıklanması gerek) · `packages` 5 ·
+`branches` 3 · `settings` 1.
+
+**Ek bulgu — ölü web kodu bozuk kayıt üretmeye çalışır:**
+`marte06/src/pages/member/JoinGymPage.tsx` hâlâ yalnızca `role: 'member'`
+yazıyor, `roles` yazmıyor. UX-9'da legacy `role` alanı kaldırıldığı için bu
+kod artık güvenlik kurallarını geçemez. Site kapalı olduğundan şu an zararsız,
+ama biri yanlışlıkla deploy ederse sessizce kırılır — bu temizlikte
+kaldırılmalı (veya web uygulaması tamamen arşivlenmeli).
+
+**Karar (27 Ağustos 2026):** TestFlight test turu sürerken kapsam
+büyütülmeyecek; bu madde test turundan sonra ele alınacak.
 
 ### [ ] WEB-6 · Göç edilen üyelerde veri kalitesi sorunları
 
