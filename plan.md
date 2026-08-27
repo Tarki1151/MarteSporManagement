@@ -23,6 +23,40 @@ kuralları, indexler, Cloud Functions) — paylaşılan Firebase projesi `taraby
 
 ## P0 — Yayın engelleyiciler
 
+### [ ] P0-0 · Salon kodu hiçbir yerde görünmüyor — üye alma akışı kopuk ⚠️ **EN ÖNCELİKLİ**
+
+**Bulgu (27 Ağustos 2026, kullanıcı sorusu):** *"Admin yeni üyelere vereceği
+salon kodunu nereden görüyor?"* — cevap: **hiçbir yerden.**
+
+Salon kodu (`tenants.code`, ör. `TARABYA-01`) yalnızca salon **kurulurken**
+yöneticinin kendi yazdığı bir alan. Kurulduktan sonra uygulamada onu gösteren
+tek bir ekran yok. Yönetici kodu unutursa öğrenmesinin yolu yok; antrenör hiç
+bilmiyor; üye hangi salonda olduğunu görüyor ama kodu göremiyor.
+
+Üye tarafındaki katılma ekranı (`onboarding/gym-code.tsx`) *"Resepsiyondaki
+QR'ı okut ya da salon kodunu gir"* diyor — ama **QR butonu pasif**
+(`opacity: 0.5`, etiketi *"QR kodu tara (yakında)"*). Yani vaat edilen
+"sıfır yazma" akışının yarısı hiç yapılmamış.
+
+Sonuç: yeni üye alma, yöneticinin kodu ezberden hatırlayıp sözlü söylemesine
+bağlı. Canlı salonda üye alma akışının tamamı buna dayandığı için P0.
+
+**Kapsam (kullanıcı isteği, 27 Ağustos 2026):**
+- **Üç rol de** kendi salonunu ve salon kodunu ekranda görebilmeli — yönetici,
+  antrenör **ve üye**. (Üyeler birbirine yardımcı olabilsin diye üyede de.)
+- Antrenör/yönetici, üye alırken **karekod gösterebilmeli**; yeni üyenin
+  uygulaması bunu okutup salona katılabilmeli.
+- Sözlü söylemek için kodun kendisi de okunaklı biçimde ekranda olmalı.
+
+**Uygulama notu:** ek native modül gerekmiyor — karekod **gösterme** için
+`components/QRCode.tsx` (üye kartında zaten kullanılıyor), karekod **okuma**
+için `expo-camera`'nın `CameraView` + `barcodeScannerSettings` deseni
+(`app/checkin.tsx`'te zaten çalışıyor) hazır. Kopyalama için `expo-clipboard`
+kurulu değil; ilk adımda kod metni `selectable` yapılıp uzun basma ile
+kopyalanabilir bırakılabilir.
+
+---
+
 ### [~] P0-1 · Freemium duvarı çıkışsız bir çıkmaz → gerçek IAP aboneliğine bağlanacak
 `gymentra-mobile/src/app/admin/members.tsx:60-64` — aktif üye sayısı
 `FREE_MEMBER_LIMIT = 10`'a ulaşınca `approveMembership()` **hiç çağrılmıyor**,
@@ -1732,6 +1766,89 @@ kayıt temizlendi, sonrasında doğrulandı (`role` olan: 0, `roles` eksik: 0).
 `role` yazıyor; yeni kural bunu reddediyor. Yani eski build'de "rol
 değiştirme" çalışmaz, yeni build'e geçince düzelir. Diğer akışlar etkilenmez
 (okuma yolları zaten `roles`'ü tercih ediyordu).
+
+---
+
+### [ ] P0-6 · Salondan ayrılan üye BİR DAHA katılamıyor ⚠️
+
+**İstek (27 Ağustos 2026):** *"Üyeler isterlerse birden fazla salona üye
+olabilirler. Salondan ayrılabilir ve tekrar üye olabilirler. Bunların
+gerçekleşebileceğini kontrol edelim."*
+
+**Emülatörde bire bir denendi (5 senaryo, `tests/` altında geçici bir dosyayla;
+sonuçlar aşağıda). Üçü çalışıyor, ikisi kırık:**
+
+| # | Senaryo | Sonuç |
+|---|---|---|
+| A | Hiç üyeliği olmayan biri katılma isteği gönderir | ✅ |
+| B | Bir salonun üyesiyken **ikinci** bir salona da katılır | ✅ |
+| C | Aktif üye salondan kendi ayrılır | ✅ |
+| D | **Ayrıldıktan sonra aynı salona yeniden katılır** | ❌ **permission-denied** |
+| E | **Reddedildikten sonra yeniden katılır** | ❌ **permission-denied** |
+
+**Kök neden:** üyelik doküman kimliği deterministik — `{tenantId}_{userId}`.
+Üye ayrılınca doküman **silinmiyor**, `status: 'left'` olarak duruyor.
+`requestJoin` ise aynı kimliğe `setDoc` yapıyor; doküman zaten var olduğu için
+bu Firestore kuralları açısından **create değil update**. Update kuralı ise
+yalnızca (a) kiracı yöneticisine veya (b) aktif üyenin kendini `left`
+yapmasına izin veriyor. `left`/`rejected` → `pending` geçişi hiçbir kuralda yok.
+
+Yani bir üye salondan ayrıldığında **kalıcı olarak dışarıda kalıyor** —
+yönetici bile geri alamaz (update kuralı `status`'ü `['active','rejected',
+'suspended']` ile sınırlıyor, `pending` yok). Aynı şey reddedilen başvuru için
+de geçerli: yanlışlıkla reddedilen kişi bir daha başvuramıyor.
+
+Canlı salonda üye giriş/çıkışı olağan olduğu için P0.
+
+**Ek bulgu — ayrılma ekranı yalan söylüyor:** `LeaveGymButton`'ın onay
+metni *"Salon kodunu girerek tekrar katılabilirsin"* diyor. Bu şu anda
+**doğru değil**; kullanıcıya yapamayacağı bir şey vaat ediliyor.
+
+#### Karar (kullanıcı, 27 Ağustos 2026)
+
+- **Ayrılma:** yönetici **onayı gerekmez**. Üyeye sorulan "emin misin?"
+  ikinci onayı yeterli (bu zaten var, `LeaveGymButton`'daki
+  `Alert.alert` — davranış korunacak).
+- **Ayrılma:** yönetici **bilgilendirilecek** (onay değil, bildirim).
+- **Yeniden katılma:** sıfırdan üye oluyormuş gibi **yönetici onayı
+  gerekecek** — yani `pending` durumuna dönüp normal onay kuyruğuna girer.
+
+**Yapılacaklar:**
+- Kurala `left`/`rejected` → `pending` yeniden başvuru yolu eklenmeli:
+  yalnızca kişinin kendisi, yalnızca `roles: ['member']`, `status: 'pending'`,
+  ve `leftAt`/`approvedAt` temizlenerek. Onay yine yöneticide kalır —
+  yani üye kendini `active` yapamaz (mevcut create kuralındaki aynı
+  kısıt korunur).
+- Ayrılma anında yöneticiye bildirim: `sendPushToUser()` altyapısı zaten
+  var (PKG-6/PKG-11 bildirimleri bunu kullanıyor); `tenant_memberships`
+  üzerinde `status: active → left` geçişini yakalayan bir
+  `onDocumentWritten` tetikleyicisi yeterli.
+- Yanlışlıkla reddedilen başvuru da aynı yoldan yeniden başvurabilir hale
+  gelir (E senaryosu), ayrıca bir yönetici aksiyonu gerekmez.
+- Yukarıdaki 5 senaryo kalıcı kural testi olarak eklenmeli (geçici dosya
+  silindi; bu davranışın bir daha sessizce kırılmaması için).
+
+---
+
+### [ ] P1-8 · Birden çok salonun üyesi olan kişi salonlar arasında geçemiyor
+
+**Bulgu (27 Ağustos 2026):** güvenlik kuralları çoklu salon üyeliğine izin
+veriyor (yukarıdaki B senaryosu ✅) ve veri modeli de destekliyor (üyelik
+kimliği `{tenantId}_{userId}`, kişi başına birden çok doküman olabilir).
+**Ama istemci bunu hiç kullanmıyor:**
+
+`membershipRepo.ts`'teki `getActiveMembership`, kullanıcının aktif üyeliklerini
+sorgulayıp **`snap.docs[0]`** döndürüyor — yani iki salonun üyesi olan biri
+her zaman rastgele (Firestore doküman sırasına göre) *bir* salonu görüyor,
+diğerine hiç erişemiyor. Salon değiştirme arayüzü yok (`RoleSwitcher` var ama
+o **rol** değiştiriyor, salon değil).
+
+Sonuç: özellik veri katmanında var, ürün katmanında yok. Kullanıcı ikinci
+salona katılma isteği gönderebilir, onaylanabilir, ama uygulamada göremez.
+
+**Yapılacaklar:** salon değiştirici (aktif salon seçimi, `activeRole` deseniyle
+aynı şekilde kalıcı saklanan bir `activeTenantId`), ve `getActiveMembership`'in
+tek bir salon varsaymayı bırakması.
 
 ---
 
