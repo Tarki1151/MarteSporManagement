@@ -23,7 +23,7 @@ kuralları, indexler, Cloud Functions) — paylaşılan Firebase projesi `taraby
 
 ## P0 — Yayın engelleyiciler
 
-### [ ] P0-0 · Salon kodu hiçbir yerde görünmüyor — üye alma akışı kopuk ⚠️ **EN ÖNCELİKLİ**
+### [x] P0-0 · Salon kodu hiçbir yerde görünmüyor — üye alma akışı kopuk ⚠️
 
 **Bulgu (27 Ağustos 2026, kullanıcı sorusu):** *"Admin yeni üyelere vereceği
 salon kodunu nereden görüyor?"* — cevap: **hiçbir yerden.**
@@ -54,6 +54,32 @@ için `expo-camera`'nın `CameraView` + `barcodeScannerSettings` deseni
 (`app/checkin.tsx`'te zaten çalışıyor) hazır. Kopyalama için `expo-clipboard`
 kurulu değil; ilk adımda kod metni `selectable` yapılıp uzun basma ile
 kopyalanabilir bırakılabilir.
+
+#### Çözüldü (27 Ağustos 2026)
+
+**`components/GymCodeCard.tsx`** — salon adı + kod, kod `selectable`
+(uzun basıp kopyalanabiliyor, native clipboard modülü gerekmeden). Üç rolün
+de hesap ekranına eklendi:
+- `member/profile.tsx` — karekod aksiyonu **yok**. Üye kodu okuyup
+  arkadaşına söyleyebilir, ama resepsiyonda karekod göstermek salonun işi.
+- `trainer/profile.tsx` ve `admin/settings.tsx` — `showQrAction` ile
+  "Karekodu göster" butonu.
+
+**`app/gym-qr.tsx`** (yeni, modal) — personelin resepsiyonda telefonu
+uzatacağı tam ekran karekod. Altında kodun kendisi de büyük puntoyla yazıyor
+("okutamıyorsa bunu yazsın"). `isStaff` ile korunuyor.
+
+**Karekod yükü `gymentra:gym:<KOD>`** — `encodeGymQr`/`decodeGymQr` tek
+yerde. Önek bilinçli: okuyucu bunu üye kartından (yükü üyelik doküman
+kimliği) ayırt edip "bu bir salon kodu değil" diyebiliyor, var olmayan bir
+salonu aramak yerine.
+
+**`onboarding/gym-code.tsx`** — pasif *"QR kodu tara (yakında)"* butonu
+gerçek tarayıcıya çevrildi (`CameraView` + `barcodeTypes: ['qr']`,
+`checkin.tsx` ile aynı desen). Kamera izni istenmiyorsa elle kod girme yolu
+zaten duruyor.
+
+`tsc`, `expo lint` ve 55 mobil test temiz.
 
 ---
 
@@ -1769,7 +1795,7 @@ değiştirme" çalışmaz, yeni build'e geçince düzelir. Diğer akışlar etki
 
 ---
 
-### [ ] P0-6 · Salondan ayrılan üye BİR DAHA katılamıyor ⚠️
+### [x] P0-6 · Salondan ayrılan üye BİR DAHA katılamıyor ⚠️
 
 **İstek (27 Ağustos 2026):** *"Üyeler isterlerse birden fazla salona üye
 olabilirler. Salondan ayrılabilir ve tekrar üye olabilirler. Bunların
@@ -1827,6 +1853,51 @@ metni *"Salon kodunu girerek tekrar katılabilirsin"* diyor. Bu şu anda
   gelir (E senaryosu), ayrıca bir yönetici aksiyonu gerekmez.
 - Yukarıdaki 5 senaryo kalıcı kural testi olarak eklenmeli (geçici dosya
   silindi; bu davranışın bir daha sessizce kırılmaması için).
+
+#### Çözüldü (27 Ağustos 2026)
+
+**Kural — yeniden başvuru yolu.** `tenant_memberships`'e üçüncü bir
+`allow update` eklendi: kişinin kendisi, `left`/`rejected` → `pending`,
+`roles: ['member']` ve `permissions: []` zorunlu, `tenantId`/`userId`
+değişmez. Değişebilecek alanlar `hasOnly(['status','roles','permissions',
+'requestedAt','leftAt','approvedAt'])` ile sınırlı.
+
+İki bilinçli kısıt:
+- **`shortCode` izinli alan listesinde YOK.** `assignMembershipShortCode`
+  `onDocumentCreated` — yani bu doküman için bir daha asla tetiklenmez;
+  üzerine yazılması üyenin giriş kodunu kalıcı olarak yok ederdi. Bu yüzden
+  istemci de `setDoc` (değiştir) değil `updateDoc` kullanıyor.
+- **`suspended` yeniden başvuramaz.** Ayrılmak kişinin kendi kararı, askıya
+  alınmak yöneticinin; askıdaki birinin kendini kuyruğa geri koyabilmesi o
+  kararı delerdi.
+
+**İstemci.** `requestJoin` artık önce dokümanı okuyor: varsa `updateDoc` ile
+`pending`'e döndürüyor (roller/izinler düz üyeye sıfırlanıyor, `leftAt` ve
+`approvedAt` siliniyor), yoksa eskisi gibi `setDoc` ile yaratıyor. Çağıranlar
+değişmedi. Ayrılmış üye zaten `primaryRole() === null` olduğu için salon kodu
+ekranına düşüyor — yeniden katılma akışı ek bir ekran gerektirmedi.
+
+**Yöneticiye bildirim.** `notifyAdminsOnMemberLeft` (`notifications.ts`):
+`status → 'left'` geçişinde salonun **tüm aktif yöneticilerine** push
+gönderiyor (tek bir owner alanına değil — salonun birden çok yöneticisi
+olabilir ve tenant dokümanının sahibi mutlaka masada duran kişi değil).
+
+**9 kalıcı kural testi** eklendi (5 senaryo + 4 kötüye kullanım): ayrılan
+yeniden başvurabilir, reddedilen yeniden başvurabilir, doğrudan `active`
+olunamaz, eski antrenör rolünü/`checkin` iznini taşıyamaz, askıdaki
+başvuramaz, başkası adına başvurulamaz, `shortCode` değiştirilemez, başka
+salona taşınamaz. 115/115 kural testi geçiyor.
+
+**Yan bulgu — UX-9'un kaçırdığı bir güvenlik gerilemesi düzeltildi.**
+`deleteMyAccount` (`functions/src/auth.ts`) "salonu yöneticisiz bırakma"
+korumasını `where('role','==','admin')` ile yapıyordu. UX-9'da `role` alanı
+silindiği için bu sorgu artık **hiç sonuç dönmüyordu** — yani tek yönetici
+hesabını silip salonu sahipsiz bırakabilirdi. Her iki sorgu da
+`where('roles','array-contains','admin')` olarak düzeltildi.
+`functions/src/` içinde başka legacy `role` sorgusu kalmadı (tarandı).
+
+**Not:** `LeaveGymButton`'daki *"Salon kodunu girerek tekrar katılabilirsin"*
+metni artık doğru.
 
 ---
 

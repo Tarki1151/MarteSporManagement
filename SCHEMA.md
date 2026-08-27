@@ -142,9 +142,17 @@ başlıyor, listenin randevu alan kişiye görünmesi gerekiyor. Bilinçli olara
 dar: üye hâlâ salonun diğer **üyelerini** listeleyemez.
 Create = yalnızca kendisi için `roles: ['member']`/`pending`; istisna:
 kiracıyı yeni kuran `ownerUid` kendine `roles: ['admin']`/`active` verebilir.
-Update = yalnızca kiracı yöneticisi ve yalnızca `status`, `approvedAt`,
-`roles`, `permissions` alanları — ayrıca **yönetici kendi `admin` rolünü
-düşüremez** (salonu yönetimsiz bırakmasın).
+Update = üç ayrı yol:
+1. **Yönetici**: yalnızca `status`, `approvedAt`, `roles`, `permissions` —
+   ayrıca **yönetici kendi `admin` rolünü düşüremez** (salonu yönetimsiz
+   bırakmasın).
+2. **Kişinin kendisi — ayrılma**: `active` → `left`, yalnızca `status` ve
+   `leftAt`. Yöneticiler hariç (salonun son yöneticisi olabilir).
+3. **Kişinin kendisi — yeniden başvuru (P0-6)**: `left`/`rejected` →
+   `pending`, `roles: ['member']` ve `permissions: []` zorunlu. Onay yine
+   yöneticide. `suspended` bu yoldan geçemez (askı yöneticinin kararıdır).
+   **`shortCode` değiştirilemez** — `assignMembershipShortCode` yalnızca
+   `onDocumentCreated` olduğu için üzerine yazılırsa bir daha atanmaz.
 
 **Rol anlamları**
 - `member` — üye. Kendi kartı, programı, ölçümü, ödemesi.
