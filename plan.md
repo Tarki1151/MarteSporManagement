@@ -57,6 +57,33 @@ kopyalanabilir bırakılabilir.
 
 #### Çözüldü (27 Ağustos 2026)
 
+**`components/GymCodeCard.tsx` (yeni).** Salon adı + katılım kodunu gösterir.
+Kod `selectable` — uzun basıp kopyalanabiliyor, böylece `expo-clipboard`
+native modülü eklemeye (ve yeni bir build zincirine) gerek kalmadı.
+Üç rolün de hesap ekranına kondu:
+- `member/profile.tsx` — QR aksiyonu **yok**. Üye kodu okuyup arkadaşına
+  söyleyebilir, ama resepsiyonda karekod göstermek salonun işi.
+- `trainer/profile.tsx` ve `admin/settings.tsx` — `showQrAction` ile.
+
+**`app/gym-qr.tsx` (yeni).** Personelin masada telefonu uzatacağı tam ekran
+karekod. Kart yerine ayrı ekran olması bilinçli: karşıdakinin telefonuna
+tutulacak, yer istiyor. `isStaff` guard'ı var; karekodun altında kod ayrıca
+büyük ve `selectable` yazılı (okutamayan yazsın diye).
+
+**Yük biçimi `gymentra:gym:<KOD>`.** Önek bilinçli: üye kartının yükü
+üyelik doküman kimliği, salon karekodununki salon kodu. Önek olmadan tarayıcı
+ikisini ayırt edemez ve yanlış olanı sessizce arar. `encodeGymQr` /
+`decodeGymQr` tek yerde (`gym-qr.tsx`), iki taraf da onu kullanıyor.
+
+**`onboarding/gym-code.tsx` — "yakında" kaldırıldı.** Pasif buton gerçek
+tarayıcıya bağlandı (`CameraView` + `barcodeTypes: ['qr']`). Salon karekodu
+değilse *"Bu karekod bir salon kodu değil"* diyor — yanlış QR'ı sessizce
+aramıyor. Elle kod girme yolu aynen duruyor.
+
+`tsc`, `expo lint` ve 55 mobil test temiz.
+
+#### Çözüldü (27 Ağustos 2026)
+
 **`components/GymCodeCard.tsx`** — salon adı + kod, kod `selectable`
 (uzun basıp kopyalanabiliyor, native clipboard modülü gerekmeden). Üç rolün
 de hesap ekranına eklendi:
