@@ -2289,7 +2289,7 @@ etkilenmedi — kimse giriş yeteneğini kaybetmedi.
 artık HTTP 404 dönüyor. **Geri dönüşlü:** `firebase deploy --only hosting`
 ile tekrar yayına alınır. Kod, veri ve kurallar etkilenmedi.
 
-### [ ] WEB-5 · Legacy koleksiyon ve kural temizliği (sonraki adım)
+### [x] WEB-5 · Legacy koleksiyon ve kural temizliği
 Site kapalı ama legacy koleksiyonlar (`members`, `lessons`, `packages`,
 `assigned_packages`, legacy `payments`, `settings`, `branches`) ve onlara ait
 güvenlik kuralları duruyor. Bir süre gözlemledikten sonra:
@@ -2315,6 +2315,53 @@ kaldırılmalı (veya web uygulaması tamamen arşivlenmeli).
 
 **Karar (27 Ağustos 2026):** TestFlight test turu sürerken kapsam
 büyütülmeyecek; bu madde test turundan sonra ele alınacak.
+
+#### Çözüldü (29 Ağustos 2026)
+
+**Önce arşiv doğrulandı.** Silmeden önce `archive/marte06-legacy/` ile
+production **doküman kimliği düzeyinde** karşılaştırıldı — 7 koleksiyon, 224
+doküman, ikisinde de birebir aynı, eksik yok. Sayı eşleşmesi yeterli
+sayılmadı; arşivde olmayan tek bir doküman bile olsa silme geri alınamaz
+olurdu.
+
+**Silme öncesi iki bulgu kullanıcıya soruldu:**
+1. `payments` **karışıktı** — 9 dokümanın 4'ü legacy, **5'i GymEntra**
+   formatında canlı ödeme kaydıydı. Koleksiyonu topluca silmek canlı defteri
+   yok ederdi. (Salon sahibi bu 5 kaydın demo olduğunu doğrulayınca hepsi
+   silindi.)
+2. 51 legacy `members` kaydından **50'si** `tenant_memberships`'a taşınmıştı;
+   **Baran Demir** taşınmamıştı. Kullanıcı bunların arşiv kaydı olduğunu,
+   hiçbirinin aktif olmadığını doğruladı.
+
+**Silinen:** 224 doküman — `lessons` 146 · `members` 51 · `assigned_packages` 9
+· `payments` 9 · `packages` 5 · `branches` 3 · `settings` 1.
+Script: `scripts/purge_legacy_web_collections.cjs` — kuru çalıştırma
+varsayılan, ve **her dokümanı silmeden önce arşivde tekrar arıyor**; arşivde
+bulunmayan varsa o koleksiyonu atlayıp uyarıyor.
+
+**Kurallar.** 7 legacy blok (`members`, `assigned_packages`, `lessons`,
+`packages`, `settings`, `branches`, legacy `payments`) ve artık çağrılmayan 4
+yardımcı fonksiyon kaldırıldı. `payments` ayıracı (`!('tenantId' in ...)`)
+gereksizleşti — GymEntra bloğu tek sahip. **`isAdmin()` tamamen kaldırıldı**:
+platform çapında süper-kullanıcı artık hiçbir yerde yok (P1-6'nın hedefi).
+Kural dosyası 718 satıra indi.
+
+**Fonksiyonlar.** `createAuthUserOnNewMember` kaldırıldı — `members`
+koleksiyonu silindiği için bir daha tetiklenemezdi. (Silme işlemi
+`onDocumentCreated`'ı tetiklemediği için temizlik sırasında da güvenliydi.)
+
+**Testler.** Legacy koleksiyonlara ve `isAdmin`'e dayanan 4 test anlamsızlaştı,
+kaldırıldı. Ayrıca kullanıcının bildirdiği "yönetici hâlâ üye kabul edemiyor"
+şikayeti için, eski build'in yazdığı **legacy `role` alanını taşıyan** bekleyen
+bir başvurunun onaylanabildiğini kanıtlayan kalıcı bir test eklendi — kuralın
+suçsuz olduğu böyle doğrulandı (asıl sebep kullanıcının build 4'te olmasıydı).
+112/112 geçiyor.
+
+**Yapılmadı — bilinçli:** `marte06/src/` web uygulaması kaynağı silinmedi.
+Orada başka bir oturumdan kalan 31 dosyalık commit'lenmemiş çalışma var;
+silmek o işi yok ederdi. Web uygulaması artık verisi olmadığı için kesin
+olarak ölü — kaynağın arşivlenmesi/kaldırılması ayrı bir iş olarak duruyor
+(`JoinGymPage.tsx`'in legacy `role` yazması da orada).
 
 ### [ ] WEB-6 · Göç edilen üyelerde veri kalitesi sorunları
 
