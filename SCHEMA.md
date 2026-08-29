@@ -142,7 +142,7 @@ başlıyor, listenin randevu alan kişiye görünmesi gerekiyor. Bilinçli olara
 dar: üye hâlâ salonun diğer **üyelerini** listeleyemez.
 Create = yalnızca kendisi için `roles: ['member']`/`pending`; istisna:
 kiracıyı yeni kuran `ownerUid` kendine `roles: ['admin']`/`active` verebilir.
-Update = üç ayrı yol:
+Update = dört ayrı yol:
 1. **Yönetici**: yalnızca `status`, `approvedAt`, `roles`, `permissions` —
    ayrıca **yönetici kendi `admin` rolünü düşüremez** (salonu yönetimsiz
    bırakmasın).
@@ -153,6 +153,16 @@ Update = üç ayrı yol:
    yöneticide. `suspended` bu yoldan geçemez (askı yöneticinin kararıdır).
    **`shortCode` değiştirilemez** — `assignMembershipShortCode` yalnızca
    `onDocumentCreated` olduğu için üzerine yazılırsa bir daha atanmaz.
+4. **Yönetici — temel bilgi düzeltmesi**: yalnızca `userDisplayName`,
+   `phone`, `birthDate`. 1. yoldan ayrı tutuldu çünkü o kural her yazımda
+   `status` doğruluyor; henüz `pending` bir kayıtta salt profil düzenlemesi
+   buna takılırdı.
+
+**Silme = `false`.** Üye çıkarma `removeMemberFromTenant` callable'ından
+geçer: cascade sekiz koleksiyonda başkasının dokümanlarına dokunuyor, bu
+yetki istemciye verilmez. Tek salona kapsamlı — kişinin başka salondaki
+verisi ve Firebase hesabı korunur. `deleteMyAccount` aynı cascade listesini
+paylaşır (kişi tamamen ayrılıyorsa salon kapsamı olmadan).
 
 **Rol anlamları**
 - `member` — üye. Kendi kartı, programı, ölçümü, ödemesi.
