@@ -1058,6 +1058,22 @@ görünmeli. Yeni alan: `submittedBy` (veya `paidBy`). Aksi halde ebeveynin
 üç çocuğu için yaptığı üç ödeme tek kişinin defterinde toplanır ve hangi
 çocuğa ait olduğu kaybolur.
 
+**Toplu ödeme (karar 7, 29 Ağustos 2026).** Ebeveyn ödeme yaparken **birden
+çok çocuk seçebilmeli**; girilen tutar seçilen çocuklara **eşit bölünerek**
+ayrı ayrı kaydedilir. Yani tek bir 900₺ girişi, üç çocuk seçiliyse üç ayrı
+300₺ `payments` kaydı olur — defter çocuk bazında doğru kalır.
+
+Çözülmesi gereken iki ayrıntı:
+- **Yuvarlama.** 1000₺ / 3 çocuk tam bölünmüyor. Kuruş kaybı ya da fazlası
+  olmamalı: kalan **son çocuğa** eklenmeli (ya da kuruş bazında dağıtılmalı).
+  Toplamın girilen tutara **birebir** eşit olması şart, yoksa defter tutmaz.
+- **Atomiklik.** N kayıt ya hep birlikte yazılmalı ya hiç — yarısı yazılıp
+  hata alınırsa ebeveyn ne ödediğini bilemez. `writeBatch` yeterli.
+
+Ayrıca bu ödemelerin **bir arada yapıldığı** görünmeli (ebeveyn tek işlem
+yaptı, defterde üç satır var). Ortak bir `paymentGroupId` bunu çözer —
+yönetici "bu üç kayıt tek ödemeydi" diyebilmeli.
+
 **(e) Kayıt akışı iki taraflı onay gerektirir.** Karar 6 "ebeveyn
 onaylamadan kayıt olamaz" diyor. Yani çocuk kaydı **ebeveynin onayını
 bekleyen** bir ara durumda kalmalı — mevcut `pending` (salon onayı) durumundan
