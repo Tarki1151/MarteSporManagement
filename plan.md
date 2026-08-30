@@ -813,6 +813,110 @@ render'ı azaltır.
 
 ---
 
+## ADMIN-REV · Salon yöneticisi yüzeyi denetimi — 29 Ağustos 2026
+
+**İstek:** *"Bir salon yöneticisi olarak adım adım her fonksiyonu gözden
+geçir, eksikleri tespit et."* Kullanıcı üç örnek verdi: salon adı
+değiştirilemiyor, çalışma saatleri yok, yöneticiye push bildirimi gitmiyor.
+
+**Yöntem:** 17 yönetici ekranının tamamı, `classRepo`/`paymentRepo`/
+`tenantRepo` yazma yüzeyi, `firestore.rules`'un yönetici izinleri ve
+`notifications.ts` tek tek okundu. Aşağıdakiler **kod okunarak doğrulandı**,
+tahmin değil.
+
+### Kritik bulgu — kuralların izin verdiği ama ekranın yapamadığı işler
+
+Üç yerde güvenlik kuralı yöneticiye yetki veriyor, istemcide o yetkiyi
+kullanan **hiçbir kod yok**. Yani backend hazır, sadece ekran eksik:
+
+| İş | Kural | İstemci |
+|---|---|---|
+| Ders güncelleme | `allow update: isTenantAdmin` ✅ | `updateClass` **yok** |
+| Ders silme | `allow delete: isTenantAdmin` ✅ | `deleteClass` **yok** |
+| Salon iletişim bilgisi | `tenants/{id}/private/*` yazma ✅ | Hiç kullanılmıyor |
+
+**Ders iptal/erteleme yokluğu operasyonel olarak en acil olanı.** Salon ders
+saatini sürekli değiştirir, hoca hastalanır, ders iptal olur. Şu an yönetici
+ders **ekleyebiliyor ama bir daha dokunamıyor** — yanlış saatle eklenen ders
+sonsuza kadar takvimde kalıyor ve üyeler ona rezervasyon yapmaya devam ediyor.
+
+### ADMIN-1 · Salon kimliği düzenlenemiyor ⚠️ **kullanıcı bildirdi**
+
+`admin/settings.tsx` yalnızca **markalaşma** yapıyor: logo, ana renk, tema.
+Salon adı ekranda `branding.appName`'den geliyor ama kod
+`const [appName] = useState(...)` — **setter yok**, okunup aynen geri
+yazılıyor. Yani ad hiçbir yerden değiştirilemiyor.
+
+Eksik alanlar: **ad**, adres, iletişim (telefon/e-posta).
+
+Ad değişikliği göründüğünden zor: `tenantName` üyelik dokümanlarına
+denormalize kopyalanmış (54 kayıt) ve `member_packages`, `pt_sessions` gibi
+yerlerde de kopya var. Değişince hepsinin güncellenmesi gerekir — tek
+dokümanlık bir düzenleme değil, bir Cloud Function işi.
+
+İletişim bilgisi için şema zaten hazır (`tenants/{id}/private/contact`,
+SCHEMA.md'de yazılı, kuralı var) ama **istemcide tek satır kod yok**.
+
+### ADMIN-2 · Salon çalışma saatleri diye bir kavram yok
+
+Şemada da yok, ekranda da. Bunun etkisi UX-4'te not edilmişti: antrenör
+çalışma saati tanımlarken 06:00–22:00 arası her saati seçebiliyor, salonun
+kapalı olduğu saate randevu açabiliyor. Salon saati olmadan UX-4'ün
+"salon saatleri içinde kalsın" kısmı **uygulanamaz** — bu madde onun önkoşulu.
+
+`tenants` altına `openingHours` (haftalık gün→pencere haritası, tatil
+istisnalarıyla) gerekiyor.
+
+### ADMIN-3 · Yöneticiye bildirim gitmiyor ⚠️ **kullanıcı bildirdi**
+
+Beş bildirimin **dördü üyeye**, yalnızca biri yöneticiye gidiyor
+(`notifyAdminsOnMemberLeft`, 27 Ağustos'ta eklendi).
+
+Salon sahibini ilgilendiren ve **hiç bildirim üretmeyen** olaylar:
+
+| Olay | Neden önemli |
+|---|---|
+| **Yeni katılım isteği** | Sahibin en zaman-kritik olayı. Şu an ancak uygulamayı açınca görüyor; üye kapıda bekliyor olabilir. **En öncelikli.** |
+| Üye ödeme bildirimi gönderdi | Onay kuyruğuna düşüyor, kimse haberdar değil |
+| Üye paket teklifini yanıtladı | Teklifi yönetici yaptı, cevabı görmüyor |
+| Üye PT randevusunu iptal etti | Antrenörün saati boşaldı |
+| Paket/kredi bitmek üzere | Yenileme satışı kaçıyor |
+
+Altyapı hazır: `sendPushToUser()` var, `notifyAdminsOnMemberLeft` aktif
+yöneticilere fan-out desenini zaten kuruyor — kopyalanacak.
+
+### ADMIN-4 · Yanlış girilen veri düzeltilemiyor
+
+- **Ödeme:** `recordPayment` var, düzenleme/silme yok. Kural da
+  `delete: if false`. Yanlış tutar girildiyse defterde kalıcı.
+- **Paket ataması:** üyeye yanlış paket atandıysa geri alma yolu yok.
+- **Ders:** yukarıdaki tabloda.
+
+Muhasebe defterinde silme olmaması doğru (iz bırakmalı), ama **düzeltme
+kaydı** (ters kayıt / iptal işareti) olmadan yönetici sıkışıyor.
+
+### ADMIN-5 · Panel yüzeysel
+
+`admin/index.tsx`: bugün giren sayısı, aktif üye, bekleyen istek, bu ay
+gelir. Gelir gerçek veriden (`confirmed` ödemelerin toplamı) — uydurma değil.
+
+Eksik: yaklaşan paket bitişleri, bu hafta doluluk, ödeme yapmayanlar. Bunlar
+P4-5 (raporlama) ile örtüşüyor.
+
+### Önerilen sıra
+
+1. **ADMIN-3'ün "yeni katılım isteği" bildirimi** — en küçük iş, en yüksek
+   etki. Mevcut fan-out deseni kopyalanacak.
+2. **Ders güncelleme/silme** — kural hazır, sadece repo + ekran. Operasyonel
+   olarak en acil eksik.
+3. **ADMIN-1 salon adı + iletişim** — ad için denormalize kopyaları
+   güncelleyen Cloud Function gerekiyor, iletişim için şema zaten hazır.
+4. **ADMIN-2 çalışma saatleri** — yeni şema alanı; UX-4'ün önkoşulu.
+5. **ADMIN-4 düzeltme yolları** — ters kayıt deseni kararı gerektiriyor.
+6. ADMIN-5 → P4-5 ile birlikte.
+
+---
+
 ## P5 — Kod sağlığı
 
 - [ ] **P5-1 · Test kapsamı** — ⚠️ *İlk denetimde "hiç test yok" yazmıştım,
@@ -1696,6 +1800,10 @@ harcayarak randevu alabiliyor.
 
 Kapsamı bir UX tasarım kararı gerektirdiği için şimdilik uygulanmadı, buraya
 not düşüldü — ileride ele alınacak.
+
+**Önkoşul (29 Ağustos 2026 denetiminde çıktı):** "salon çalışma saatleri
+içinde kalsın" maddesi **ADMIN-2 olmadan uygulanamaz** — şemada salon
+çalışma saati diye bir alan yok. Bu madde ADMIN-2'den sonra ele alınmalı.
 
 ---
 
