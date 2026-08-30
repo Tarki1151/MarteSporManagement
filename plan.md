@@ -895,6 +895,22 @@ yöneticilere fan-out desenini zaten kuruyor — kopyalanacak.
 Muhasebe defterinde silme olmaması doğru (iz bırakmalı), ama **düzeltme
 kaydı** (ters kayıt / iptal işareti) olmadan yönetici sıkışıyor.
 
+**Karar (29 Ağustos 2026, kullanıcı):** bir ödeme kaydı değiştirildiğinde
+**hem yönetici hem üye haberdar olmalı**, ve bildirime basıldığında **ilgili
+ödemeye gidip değişikliği görebilmeli**.
+
+Bu, bugünkü `notifyOnPaymentStatusChange`'den farklı: o yalnızca
+`pending → confirmed/rejected` geçişini yakalıyor ve yalnızca üyeye gidiyor.
+Gereken, **tutar/yöntem/not gibi alanların düzeltilmesini** de yakalayan ve
+iki tarafa da giden bir bildirim.
+
+Uygulama notu — derin bağlantı altyapısı zaten var: `sendPushToUser`'ın
+`data` parametresi `{ screen: 'member/payments' }` şeklinde kullanılıyor
+(bkz. `notifyOnPaymentStatusChange`). Ödeme kimliğini de taşıyıp ekranın o
+kayda kaydırması/vurgulaması gerekecek — şu an bildirim yalnızca ekranı
+açıyor, belirli bir kayda götürmüyor. Bu eksik **tüm bildirimler için**
+geçerli, ayrıca not edildi.
+
 ### ADMIN-5 · Panel yüzeysel
 
 `admin/index.tsx`: bugün giren sayısı, aktif üye, bekleyen istek, bu ay
@@ -914,6 +930,107 @@ P4-5 (raporlama) ile örtüşüyor.
 4. **ADMIN-2 çalışma saatleri** — yeni şema alanı; UX-4'ün önkoşulu.
 5. **ADMIN-4 düzeltme yolları** — ters kayıt deseni kararı gerektiriyor.
 6. ADMIN-5 → P4-5 ile birlikte.
+
+---
+
+## MEMBER-REV · Salon üyesi yüzeyi denetimi — 29 Ağustos 2026
+
+**Yöntem:** 11 üye ekranı (`member/`), üyenin kendi verisine erişimi ve
+düzenleyebildikleri okundu. ADMIN-REV ile aynı disiplin — aşağıdakiler kod
+okunarak doğrulandı.
+
+### MEMBER-1 · Üye satın aldığı paketi HİÇ göremiyor ⚠️ en ciddi eksik
+
+`watchMemberCredits` istemcide **tek yerde** kullanılıyor: `book-session.tsx`,
+randevu almadan önce PT kredisi var mı diye bakmak için. Üyenin
+*"paketim ne, ne zaman bitiyor, kaç dersim kaldı"* sorusunu cevaplayan
+**hiçbir ekran yok**.
+
+Üye şunları göremiyor:
+- Aktif paketinin adı ve bitiş tarihi
+- Kalan grup dersi / PT ders hakkı
+- Paket geçmişi
+
+Bu PKG-12'de planlanmıştı (*"Üye: Bugün ekranı ve Hesabım'da aktif paket —
+'Gold · 24 gün kaldı', '12 Ders · 5 kaldı'"*) ama yapılmamış. Salon para
+alıyor, üye ne aldığını uygulamada göremiyor — ürün açısından en zayıf nokta.
+
+### MEMBER-2 · Üye kendi bilgilerinin hiçbirini düzenleyemiyor
+
+`member/profile.tsx`'te düzenleme yok: yalnızca salon kodu kartı, rol
+değiştirici, çıkış, salondan ayrıl, yasal bağlantılar, hesap silme.
+Ad, telefon, doğum tarihi, fotoğraf — hiçbiri.
+
+Kayıt ekranı *"Doğum günü, fotoğraf vs. SONRA sorulur"* diye söz veriyor
+(`onboarding/register.tsx` alt metni) ama **o "sonra" hiç gelmiyor**.
+
+29 Ağustos'ta yöneticiye bu düzenleme yeteneği verildi (`admin/edit-member`);
+üyenin kendisinde hâlâ yok. Bu P4-4 ile aynı madde, artık asimetrisiyle
+birlikte kayıtlı.
+
+### MEMBER-3 · "Rezervasyonlarım" görünümü yok
+
+Bugün ekranı yalnızca **bir sonraki** PT randevusunu gösteriyor; Dersler
+ekranı seçilen **günü** gösteriyor. Üyenin tüm yaklaşan rezervasyonlarını
+(grup dersi + PT) tek yerde gördüğü bir ekran yok. P4-1'in doğrulanmış hali.
+
+### MEMBER-4 · Giriş (check-in) geçmişi yüzeysel
+
+`watchMyCheckins` yalnızca bu haftanın sayısını besliyor (Bugün ekranındaki
+"haftada 0/4"). Üye *"en son ne zaman geldim, bu ay kaç kez"* göremiyor.
+
+---
+
+## MEMBER-5 · Reşit olmayan üye ve ebeveyn bağlama — 29 Ağustos 2026
+
+**İstek (kullanıcı):** *"Salon üyesinin yaş bilgisini de bilmemiz lazım ki
+eğer 18 yaşından küçük ise aynı üyeyi bir ebeveyne bağlama opsiyonu doğsun,
+ebeveyn'in de bilgilerini alalım."*
+
+**Bu salon zaten böyle çalışıyordu.** Silinen legacy `members` koleksiyonunda
+`parentName` ve `parentPhone` alanları vardı (arşivde duruyor,
+`archive/marte06-legacy/members.json`). Yani ihtiyaç yeni değil — göçte
+düşmüş.
+
+**Bugünkü durum:** `tenant_memberships.birthDate` alanı var ama:
+- Üye kendisi giremiyor (MEMBER-2)
+- Yalnızca marte06'dan taşınan üyelerde dolu — yeni kaydolanda boş
+- Yaşla ilgili hiçbir mantık yok
+
+**Gerekenler:**
+1. **Doğum tarihi kayıt akışında sorulmalı** (veya ilk girişte). Şu an hiç
+   sorulmuyor, yani yaş bilgisi yeni üyelerde hiç oluşmuyor.
+2. **18 yaş altı tespiti** — doğum tarihinden türetilir, ayrı alan tutulmaz
+   (yaş her gün değişir, `isMinor` alanı bayatlar).
+3. **Ebeveyn bilgisi**: ad, telefon, (e-posta?), yakınlık derecesi.
+4. **Ebeveyni bir GymEntra hesabına bağlama opsiyonu** — ebeveyn de salonun
+   üyesiyse çocuğunun randevu/ödeme durumunu görebilmeli.
+
+**Karar gerektiren noktalar (uygulamadan önce sorulmalı):**
+- Ebeveyn bilgisi **serbest metin mi**, yoksa **gerçek bir üyelik bağlantısı
+  mı**? İlki basit (legacy'deki gibi), ikincisi ebeveyne görünürlük verir ama
+  yetkilendirme kuralı gerektirir (ebeveyn çocuğun verisini okuyabilmeli).
+- Ebeveyn çocuk adına **işlem yapabilmeli mi** (randevu alma, iptal, ödeme
+  bildirimi)? Bu, kuralları belirgin şekilde genişletir.
+- 18 yaş altı üye **kendi başına kaydolabilmeli mi**, yoksa ebeveyn bilgisi
+  zorunlu mu?
+- KVKK: çocuğun verisini işlemek için ebeveyn onayı gerekiyor. Bu bir hukuki
+  gereklilik, ürün tercihi değil — akışa açık bir onay adımı girmeli.
+
+**Bağımlılık:** MEMBER-2 (doğum tarihi girişi) bu maddenin önkoşulu.
+
+---
+
+## Bildirimlerde ortak eksik — derin bağlantı
+
+`sendPushToUser`'ın `data` parametresi bugün yalnızca `{ screen: '...' }`
+taşıyor, yani bildirime basınca **ekran açılıyor ama ilgili kayda
+gidilmiyor**. Üye 12 ödemesi varken "ödemen onaylandı" bildirimine bastığında
+hangisi olduğunu kendisi aramak zorunda.
+
+Bütün bildirimler için geçerli; ADMIN-4'ün ödeme düzeltme bildirimi de buna
+bağlı. Kayıt kimliğini `data`'ya koyup hedef ekranın o kaydı vurgulaması
+gerekiyor.
 
 ---
 
