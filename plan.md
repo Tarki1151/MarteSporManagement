@@ -1006,18 +1006,80 @@ düşmüş.
 4. **Ebeveyni bir GymEntra hesabına bağlama opsiyonu** — ebeveyn de salonun
    üyesiyse çocuğunun randevu/ödeme durumunu görebilmeli.
 
-**Karar gerektiren noktalar (uygulamadan önce sorulmalı):**
-- Ebeveyn bilgisi **serbest metin mi**, yoksa **gerçek bir üyelik bağlantısı
-  mı**? İlki basit (legacy'deki gibi), ikincisi ebeveyne görünürlük verir ama
-  yetkilendirme kuralı gerektirir (ebeveyn çocuğun verisini okuyabilmeli).
-- Ebeveyn çocuk adına **işlem yapabilmeli mi** (randevu alma, iptal, ödeme
-  bildirimi)? Bu, kuralları belirgin şekilde genişletir.
-- 18 yaş altı üye **kendi başına kaydolabilmeli mi**, yoksa ebeveyn bilgisi
-  zorunlu mu?
-- KVKK: çocuğun verisini işlemek için ebeveyn onayı gerekiyor. Bu bir hukuki
-  gereklilik, ürün tercihi değil — akışa açık bir onay adımı girmeli.
+### Kararlar (kullanıcı, 29 Ağustos 2026)
 
-**Bağımlılık:** MEMBER-2 (doğum tarihi girişi) bu maddenin önkoşulu.
+1. **Ebeveyn gerçek üye olarak kaydedilir** — serbest metin değil, gerçek
+   `tenant_memberships` kaydı. Ödemeleri sonuçta ebeveyn yapacak.
+2. **Ebeveynin geçerli paketi olması şartı YOK** — kendisi spora gelmiyor
+   olabilir.
+3. **Ebeveyn, çocuklarından herhangi biri aktif üyelik paketine sahipse
+   karekod okutup salona girebilir.**
+4. **Ebeveyn çocuk adına tüm işlemlere yetkilidir.**
+5. **Ebeveyn birden çok çocuğu için ödemeyi ayrı ayrı yapabilmeli.**
+6. **18 yaş altı, ebeveyn ataması yapılmadan kaydı bitiremez** ve ebeveyn
+   onayı olmadan kayıt olamaz.
+
+### Bu kararların mimari sonuçları
+
+**(a) Bağlantı nerede durur.** Çocuğun üyelik dokümanına `guardianId`
+(ebeveynin uid'si). Doküman kimliği zaten `{tenantId}_{uid}`, yani çocuk
+başına tek ebeveyn doğal olarak tekil. Ebeveynin çocuklarını listelemesi
+`where('guardianId','==',uid)` sorgusu — **yeni composite index gerekir**.
+
+**(b) Ebeveynin karekodla girişi kuralla çözülemez.** Karar 3 "çocuklarından
+*herhangi biri*" diyor; bu bir **sorgu**, kurallar sorgu çalıştıramaz.
+Projenin bu soruna verdiği yerleşik cevap zaten var: `member_entitlements`
+aynası (PKG-4). `syncMemberEntitlements` bugün `member_packages` yazımında
+tetiklenip `{tenantId}_{memberId}` önbelleğini yazıyor.
+
+Genişletme: bir çocuğun paketi değiştiğinde **ebeveynin önbelleği de**
+yeniden hesaplanmalı ("çocuklarından en geç biten aktif paket"). Böylece
+check-in kuralı ebeveyn için de tek doküman okumasıyla karar verir —
+"sayan her şey callable'da / aynada" ilkesi korunur.
+
+⚠️ Dikkat: ebeveynin girişi çocuğun **kredisini tüketmemeli**. Check-in
+`accessReason` alanını taşıyor (PKG-3); ebeveyn girişi için ayrı bir sebep
+değeri gerekir ki defterde ayırt edilebilsin ve hak düşmesin.
+
+**(c) "Çocuk adına tüm işlemler" kuralları belirgin genişletir.** Kurallara
+`isGuardianOf(childUid)` yardımcısı gerekir (çocuğun üyelik dokümanını
+`get()` edip `guardianId == request.auth.uid` kontrolü — kurallar bunu
+yapabilir). Etkilenen yerler: `pt_sessions` (alma/iptal), `classes`
+(rezervasyon/iptal), `payments` (bildirim), `member_packages` ve
+`member_credits` (okuma), `checkins` (okuma), `measurements`.
+
+Ayrıca **callable'lar da güncellenmeli** — `bookPtSessions` ve
+`cancelPtSession` bugün `request.auth.uid`'i üye olarak kabul ediyor;
+ebeveyn çağırdığında çocuğun adına çalışmaları gerekecek.
+
+**(d) Ödeme kimin defterine yazılıyor.** Karar 5 gereği ödeme **çocuğun**
+kaydı olmalı (`memberId` = çocuk) ama **ebeveyn tarafından** gönderildiği
+görünmeli. Yeni alan: `submittedBy` (veya `paidBy`). Aksi halde ebeveynin
+üç çocuğu için yaptığı üç ödeme tek kişinin defterinde toplanır ve hangi
+çocuğa ait olduğu kaybolur.
+
+**(e) Kayıt akışı iki taraflı onay gerektirir.** Karar 6 "ebeveyn
+onaylamadan kayıt olamaz" diyor. Yani çocuk kaydı **ebeveynin onayını
+bekleyen** bir ara durumda kalmalı — mevcut `pending` (salon onayı) durumundan
+**farklı** bir şey: iki ayrı onay var (ebeveyn + salon yöneticisi). Durum
+modeli buna göre genişletilmeli.
+
+Ebeveyn henüz üye değilse önce onun kaydolması gerekir; akış bunu
+karşılamalı (çocuk "ebeveynimin e-postası şu" der, ebeveyne davet gider).
+
+**(f) KVKK.** Çocuğun verisini işlemek için ebeveyn onayı yasal
+zorunluluk — karar 6 zaten bunu karşılıyor, ama onayın **kayıt altına
+alınması** gerekir (ne zaman, hangi ebeveyn, hangi sürüm metin).
+
+### Bağımlılıklar ve sıra
+
+- **MEMBER-2 önkoşul**: doğum tarihi bugün kayıt akışında hiç sorulmuyor,
+  yani 18 yaş altı tespiti için gereken veri hiç oluşmuyor.
+- ADMIN-1'deki denormalize kopya sorununun aynısı burada da var: ebeveyn adı
+  çocuğun ekranında gösterilecekse kopya tutulmalı ve kaynak değişince
+  güncellenmeli.
+- Bu madde tek başına bir "blok" büyüklüğünde — PKG serisi gibi alt maddelere
+  bölünmeli. Uygulamaya başlamadan önce ayrı bir plan turu hak ediyor.
 
 ---
 
