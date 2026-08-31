@@ -840,11 +840,18 @@ saatini sürekli değiştirir, hoca hastalanır, ders iptal olur. Şu an yöneti
 ders **ekleyebiliyor ama bir daha dokunamıyor** — yanlış saatle eklenen ders
 sonsuza kadar takvimde kalıyor ve üyeler ona rezervasyon yapmaya devam ediyor.
 
-**Kısmen çözüldü (29 Ağustos 2026):** `updateClass` ve `deleteClass`
-`classRepo`'ya eklendi; ders listesine kaydırmalı **iptal** bağlandı. İptal
-onayı kayıtlı kişi sayısını söylüyor. `updateClass` yazıldı ama **düzenleme
-ekranı henüz yok** — erteleme/saat değiştirme hâlâ yapılamıyor, sıradaki iş.
-`updateClass` bilinçli olarak rezervasyon dizilerine dokunmuyor.
+**Çözüldü (29 Ağustos 2026):** `updateClass` ve `deleteClass` `classRepo`'ya
+eklendi; ders listesine kaydırmalı **Düzenle / İptal et** bağlandı.
+
+- İptal onayı kayıtlı kişi sayısını söylüyor.
+- Düzenleme, ekleme formunu yeniden kullanıyor (iki formun zamanla
+  ayrışmaması için). Formun sabit ön ayarları düzenleme için dardı: 07:15'lik
+  bir dersi açıp kaydetmek onu sessizce 09:00'a taşırdı — gün/saat/süre
+  listeleri artık düzenlenen dersin kendi değerini ön ayarlarda yoksa
+  seçenek olarak ekliyor.
+- Kayıtlı kişi varsa formda uyarı: saati değiştirmek onların programını da
+  değiştiriyor.
+- `updateClass` bilinçli olarak rezervasyon dizilerine dokunmuyor.
 
 ### ADMIN-1 · Salon kimliği düzenlenemiyor ⚠️ **kullanıcı bildirdi**
 
