@@ -967,7 +967,7 @@ arama/limit ile başlamalı; 51 üyelik salon artık test verisi değil, gerçek
 
 ---
 
-### [ ] ADMIN-7 · Kart tasarımlarının bütünsel gözden geçirilmesi
+### [x] ADMIN-7 · Kart tasarımlarının bütünsel gözden geçirilmesi
 
 **İstek (29 Ağustos 2026, simülatör testi):** *"Üyede paketim kartı görünüyor
 ama çok anlamlı değil. Kart büyüklüğüne göre yazıların yerleşimi ve büyüklüğü
@@ -990,6 +990,19 @@ helper / label) ve ikon-metin hizası kart başına değişiyor. Bir kart
 envanteri çıkarılıp ortak bir düzen sözleşmesi tanımlanmalı.
 
 Not: `designplan.md` bu iş için mevcut referans.
+
+**Çözüldü (29 Ağustos 2026):** `components/InfoCard.tsx` — öndeki görsel +
+başlık/alt başlık + isteğe bağlı sağ eylem. Yaygın durum için `icon`
+(38pt daire tek yerde tanımlı; üç kartın 38, birinin 34 olmasının sebebi
+her çağrı yerinde elle yazılmasıydı), gerçekten farklı olanlar için `lead`.
+
+Dönüştürülenler: paket teklifi, randevu al, ödemelerim, durumum, paket kartı.
+Alt başlık aciliyeti taşıyabiliyor (`subtitleTone`) — bekleyen ödeme
+bildirimi ve bitmek üzere olan paket uyarı renginde.
+
+**Kalan:** aynı sözleşme henüz yalnızca üye Bugün ekranına uygulandı.
+Yönetici panel kartları, antrenör profili ve `progress.tsx` hâlâ kendi
+düzenlerini kuruyor — sonraki turda.
 
 ---
 
