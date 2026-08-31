@@ -967,6 +967,32 @@ arama/limit ile başlamalı; 51 üyelik salon artık test verisi değil, gerçek
 
 ---
 
+### [ ] ADMIN-7 · Kart tasarımlarının bütünsel gözden geçirilmesi
+
+**İstek (29 Ağustos 2026, simülatör testi):** *"Üyede paketim kartı görünüyor
+ama çok anlamlı değil. Kart büyüklüğüne göre yazıların yerleşimi ve büyüklüğü
+dengesiz ve oransız gibi. Tekrar bir tasarımı gözü ile tüm kartları gözden
+geçir."*
+
+`MyPackageCard`'ın kendi sorunu düzeltildi (tam genişlik ortalanmış sütun
+yerine satır içi haplar — tek kredi türünde kartın ortasında yalnız dev bir
+rakam kalıyordu). Ama istenen **bütünsel** bir tasarım turu; o yapılmadı.
+
+Gözden geçirilecekler — üye Bugün ekranında yan yana duran kartlar birbiriyle
+tutarsız:
+- "PAKETİM" — başlık + iki satır + haplar
+- "YAKLAŞAN RANDEVU" — ikon + iki satır + sağda metin bağlantı
+- "DURUMUM" — büyük halka + üç satır metin
+- "Ödemelerim" / "Randevu al" — ikon + iki satır + chevron
+
+Dört farklı iç düzen, dört farklı görsel ağırlık. Tipografi ölçeği (h3 /
+helper / label) ve ikon-metin hizası kart başına değişiyor. Bir kart
+envanteri çıkarılıp ortak bir düzen sözleşmesi tanımlanmalı.
+
+Not: `designplan.md` bu iş için mevcut referans.
+
+---
+
 ### ADMIN-5 · Panel yüzeysel
 
 `admin/index.tsx`: bugün giren sayısı, aktif üye, bekleyen istek, bu ay
