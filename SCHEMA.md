@@ -143,6 +143,10 @@ koleksiyonları kendi `isAdmin()` kontrollerini korur.
 | `userId` | string | Firebase Auth uid |
 | `tenantId` | string | |
 | `tenantCode` / `tenantName` | string | Denormalize kopya |
+| `guardianId` | string? | Ebeveynin uid'si (MEMBER-5b). Yalnızca `requestGuardian`/`respondToGuardian` callable'ları yazar; beş `update` kuralının hiçbiri bu alanları `hasOnly` listesine almadığı için istemci yazamaz |
+| `guardianName` | string? | Denormalize kopya — kaynak değişince güncellenmeli |
+| `guardianStatus` | string? | `pending` / `approved` / `rejected`. **`status`'tan ayrı bir eksen**: `status` salonun cevabı, bu ebeveynin cevabı. Tek alana sıkıştırmak "hangi onay eksik" sorusunu cevapsız bırakır |
+| `guardianConsentAt` / `guardianConsentVersion` | Timestamp? / string? | KVKK: reşit olmayanın verisini işlemek ebeveyn onayı gerektirir, onay kayıt altına alınır |
 | `roles` | `MembershipRole[]` | **Bir kullanıcının bir salonda birden çok rolü olabilir** (küçük salonda sahip genelde antrenör de). Roller örtük değildir, açıkça verilir. Tek doğruluk kaynağı — eski tekil `role` alanı 27 Ağustos 2026'da tamamen kaldırıldı (`scripts/drop_legacy_role_field.cjs`). |
 | `permissions` | `MembershipPermission[]` | Yöneticinin devrettiği dar yetenekler. Şu an tek değer: `'checkin'`. |
 | `status` | `'pending' \| 'active' \| 'rejected' \| 'suspended'` | |

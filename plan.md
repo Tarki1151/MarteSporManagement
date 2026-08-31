@@ -1311,7 +1311,7 @@ Yol üzerinde: `admin/edit-member.tsx` hata metni ham `'#F87171'` kullanıyordu
 — bu koyu temanın `danger` token'ı, yani açık temada yanlış renkti
 (AGENTS §3). Token'a çevrildi.
 
-**[ ] MEMBER-5b · Ebeveyn bağlantısı ve iki taraflı onay.** Çocuğun
+**[x] MEMBER-5b · Ebeveyn bağlantısı ve iki taraflı onay.** Çocuğun
 dokümanında `guardianId` + `guardianStatus` (`pending` / `approved`).
 Ebeveyn zaten üye değilse davet akışı. Mevcut `status: 'pending'` salon
 onayı; ebeveyn onayı **ayrı** bir eksen — ikisini tek alana sıkıştırmak
