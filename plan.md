@@ -1367,11 +1367,39 @@ Sunucu desteği hazır (`bookPtSessions` `memberId` alıyor, kurallar ders
 rezervasyonuna izin veriyor) ama randevu alma akışı kendi ekranı; sessizce
 "tamamlandı" demiyorum.
 
-**[ ] MEMBER-5d · Ebeveynin karekodla girişi.** Karar 3 bir *sorgu* ("çocuklarından
+**[x] MEMBER-5d · Ebeveynin karekodla girişi.** Karar 3 bir *sorgu* ("çocuklarından
 herhangi biri") — kural sorgu çalıştıramaz, yani aynaya gider.
 `syncMemberEntitlements` genişletilir: çocuğun paketi değişince ebeveynin
 önbelleği de yeniden hesaplanır. Girişin çocuğun kredisini **tüketmemesi**
 şart; `accessReason` için ayrı bir değer.
+
+**Çözüldü (31 Ağustos 2026) — ama planın mimari notu yanlıştı.**
+
+Not, giriş kararının `member_entitlements` aynasından verildiğini
+varsayıyordu. **Vermiyor.** Giriş erişimi `checkinRepo.resolveAccess`
+içinde, tarayan personelin cihazında, doğrudan `member_packages` /
+`member_credits` okunarak çözülüyor; ayna yalnızca **ders rezervasyonunu**
+kapılayan kuralın okuduğu şey. Dolayısıyla aynayı genişletmek gereksizdi —
+üstelik yanlış olurdu: aynayı ebeveyn için doldurmak ona *kendi adına ders
+rezervasyonu* hakkı verirdi, oysa karar 2 ebeveynin spor yapmadığını
+söylüyor.
+
+Yapılan: `resolveAccess`'e altıncı bir adım. Ebeveynin onaylı çocuklarından
+herhangi biri aktif üyelik paketi taşıyorsa giriş `ok`. **En sona** kondu —
+kendi paketi olan kendi paketiyle giriyor, buraya yalnızca hiçbir şeyi
+olmayan ebeveyn düşüyor. Sorguyu tarayan personel cihazı çalıştırıyor;
+üyenin kendisi roster'ı listeleyemez ama tarayan o değil.
+
+**Hiçbir şey tüketilmiyor.** Çocuğun kredisi ve randevusu ellenmiyor —
+ebeveyn çocuğun ödeme yapan bir üye *olduğu gerçeği* üzerine giriyor,
+çocuğun harcayabileceği bir şey üzerine değil.
+
+`accessReason: 'guardian'` ayrı bir değer; `'ok'` değil çünkü bu girişler
+meşru ama kişinin kendi paketi değil, `warn` da değil çünkü personel bir
+uyarıyı geçmiyor. `CheckInWarnReason` bu yüzden `Exclude<..., 'ok'>`
+olmaktan çıkıp açık listeye döndü.
+
+3 test. **160/160 geçiyor.**
 
 **[ ] MEMBER-5e · Ebeveyn ödemesi ve toplu ödeme.** `payments.submittedBy`
 (ödeme çocuğun defterine, ebeveyn tarafından gönderildiği görünür) ve
