@@ -1584,17 +1584,42 @@ Takvim + Profil sekmeleri aynı anda mount olduğu için üye listesi tek başı
 - [x] Google Sign-In yapılandırıldı (SHA-1 + SHA-256 Firebase'e eklendi)
 - [x] FCM V1 servis hesabı EAS'a yüklendi (push bildirimleri için)
 - [x] Preview APK ile gerçek cihaz doğrulaması
-- [ ] **`RECORD_AUDIO` izni kaldırılmalı** (P0-3)
+- [x] **`RECORD_AUDIO` izni kaldırıldı** (P0-3) — `app.json`'da doğrulandı,
+      izin listesinde yalnızca `CAMERA` var
+- [ ] **Play Console geliştirici hesabı** (25 USD, tek seferlik). **Kritik
+      sıra sorunu:** Kasım 2023 sonrası açılan **bireysel** hesaplar üretime
+      çıkmadan önce **20 test kullanıcısıyla 14 gün kesintisiz kapalı test**
+      yapmak zorunda. Yani Play tarafında yayın, hesap açıldıktan sonra en
+      erken ~2 hafta. Bu takvimi belirleyen madde — iOS'tan bağımsız ve
+      önce başlaması gereken iş. Kurumsal (organization) hesapta bu şart yok;
+      hangi tipte açılacağı **karar bekliyor**.
 - [ ] **Data Safety formu** — App Privacy ile birebir tutarlı doldurulmalı
-- [ ] Play Console uygulama kaydı + içerik derecelendirme anketi
+- [ ] İçerik derecelendirme anketi
 - [ ] Mağaza materyalleri: telefon ekran görüntüleri, 1024×500 feature
       graphic, kısa (80 kr.) ve uzun (4000 kr.) açıklama
-- [ ] AAB (App Bundle) production build — mevcut `preview` profili APK üretiyor,
-      Play Store AAB ister
+- [ ] **`eas.json`'a `submit.production.android` eklenmeli.** Bugün yalnızca
+      iOS var; Android submit'i Play Console'dan indirilen bir **servis
+      hesabı JSON'u** istiyor (`serviceAccountKeyPath`). Bu dosya `.p8` gibi
+      bir sırdır — `secrets/` altına, gitignore'lu.
+- [x] AAB (App Bundle) — düzeltme: `production` profili Android'de zaten
+      varsayılan olarak AAB üretiyor. APK üreten yalnızca `preview` profili
+      ve o zaten dahili test için. Eski not yanlıştı.
 - [ ] Hesap silme (P0-2) — Play'in de veri silme politikası var; ayrıca
       Play Console'da "hesap silme URL'i" alanı doldurulmalı
-- [ ] Closed testing (kapalı test) — Play, yeni geliştirici hesapları için
-      üretime çıkmadan önce test dönemi zorunlu kılıyor
+- [ ] Closed testing (kapalı test) — yukarıdaki 14 gün / 20 test kullanıcısı
+      şartı
+
+**Android'de bugün ne çalışıyor:** paket adı, adaptive icon, Google Sign-In
+(SHA-1/SHA-256 Firebase'de), FCM V1 servis hesabı EAS'ta, preview APK ile
+gerçek cihaz doğrulaması. Yani **build alınabilir durumda** — eksik olan
+mağaza tarafı, kod tarafı değil.
+
+**Apple Sign-In Android'de:** sorun yok. `isAppleSignInAvailable()`
+`Platform.OS === 'ios'` döndürüyor ve `register.tsx` düğmeyi buna göre
+gizliyor — Android'de "Apple ile devam et" hiç çizilmiyor. (Apple'ın
+"başka platformda da sunulmalı" şartı yalnızca uygulamanın **kendisi** o
+platformda üçüncü parti giriş sunuyorsa devreye girer; Google girişi
+Android'de zaten yerel akışla çalışıyor.)
 
 ### Her iki mağaza
 
