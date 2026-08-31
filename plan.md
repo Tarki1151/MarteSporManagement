@@ -840,6 +840,12 @@ saatini sürekli değiştirir, hoca hastalanır, ders iptal olur. Şu an yöneti
 ders **ekleyebiliyor ama bir daha dokunamıyor** — yanlış saatle eklenen ders
 sonsuza kadar takvimde kalıyor ve üyeler ona rezervasyon yapmaya devam ediyor.
 
+**Kısmen çözüldü (29 Ağustos 2026):** `updateClass` ve `deleteClass`
+`classRepo`'ya eklendi; ders listesine kaydırmalı **iptal** bağlandı. İptal
+onayı kayıtlı kişi sayısını söylüyor. `updateClass` yazıldı ama **düzenleme
+ekranı henüz yok** — erteleme/saat değiştirme hâlâ yapılamıyor, sıradaki iş.
+`updateClass` bilinçli olarak rezervasyon dizilerine dokunmuyor.
+
 ### ADMIN-1 · Salon kimliği düzenlenemiyor ⚠️ **kullanıcı bildirdi**
 
 `admin/settings.tsx` yalnızca **markalaşma** yapıyor: logo, ana renk, tema.
@@ -867,7 +873,7 @@ kapalı olduğu saate randevu açabiliyor. Salon saati olmadan UX-4'ün
 `tenants` altına `openingHours` (haftalık gün→pencere haritası, tatil
 istisnalarıyla) gerekiyor.
 
-### ADMIN-3 · Yöneticiye bildirim gitmiyor ⚠️ **kullanıcı bildirdi**
+### [~] ADMIN-3 · Yöneticiye bildirim gitmiyor ⚠️ **kullanıcı bildirdi**
 
 Beş bildirimin **dördü üyeye**, yalnızca biri yöneticiye gidiyor
 (`notifyAdminsOnMemberLeft`, 27 Ağustos'ta eklendi).
@@ -884,6 +890,15 @@ Salon sahibini ilgilendiren ve **hiç bildirim üretmeyen** olaylar:
 
 Altyapı hazır: `sendPushToUser()` var, `notifyAdminsOnMemberLeft` aktif
 yöneticilere fan-out desenini zaten kuruyor — kopyalanacak.
+
+**Kısmen çözüldü (29 Ağustos 2026):** `notifyAdminsOnJoinRequest` eklendi ve
+canlıya alındı — listedeki en öncelikli madde. `onDocumentWritten`
+kullanıldı, `onDocumentCreated` değil: P0-6'dan sonra yeniden katılma bir
+UPDATE olduğu için create-only bir tetikleyici geri dönen her üyeyi
+kaçırırdı. Fan-out `notifyTenantAdmins` yardımcısına çıkarıldı,
+`notifyAdminsOnMemberLeft` de onu kullanıyor.
+
+**Kalan:** ödeme bildirimi, paket teklifi yanıtı, PT iptali, paket bitişi.
 
 ### ADMIN-4 · Yanlış girilen veri düzeltilemiyor
 
@@ -939,7 +954,7 @@ P4-5 (raporlama) ile örtüşüyor.
 düzenleyebildikleri okundu. ADMIN-REV ile aynı disiplin — aşağıdakiler kod
 okunarak doğrulandı.
 
-### MEMBER-1 · Üye satın aldığı paketi HİÇ göremiyor ⚠️ en ciddi eksik
+### [x] MEMBER-1 · Üye satın aldığı paketi HİÇ göremiyor ⚠️ en ciddi eksik
 
 `watchMemberCredits` istemcide **tek yerde** kullanılıyor: `book-session.tsx`,
 randevu almadan önce PT kredisi var mı diye bakmak için. Üyenin
@@ -954,6 +969,13 @@ randevu almadan önce PT kredisi var mı diye bakmak için. Üyenin
 Bu PKG-12'de planlanmıştı (*"Üye: Bugün ekranı ve Hesabım'da aktif paket —
 'Gold · 24 gün kaldı', '12 Ders · 5 kaldı'"*) ama yapılmamış. Salon para
 alıyor, üye ne aldığını uygulamada göremiyor — ürün açısından en zayıf nokta.
+
+**Çözüldü (29 Ağustos 2026):** `components/MyPackageCard.tsx`, Bugün
+ekranında "yaklaşan randevu"nun üstünde. Repo tarafı zaten hazırdı
+(`watchMemberPackages`, `watchMemberCredits`) — eksik olan yalnızca ekrandı.
+Kalan süre gün olarak (sorulan soru "yenilemem gerekiyor mu"), son bir hafta
+uyarı renginde. Sınırsız grup dersi ∞ ile. Paketi olmayan üye boş kart yerine
+açıklayıcı bir cümle görüyor.
 
 ### MEMBER-2 · Üye kendi bilgilerinin hiçbirini düzenleyemiyor
 
