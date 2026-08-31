@@ -1278,6 +1278,67 @@ alınması** gerekir (ne zaman, hangi ebeveyn, hangi sürüm metin).
 - Bu madde tek başına bir "blok" büyüklüğünde — PKG serisi gibi alt maddelere
   bölünmeli. Uygulamaya başlamadan önce ayrı bir plan turu hak ediyor.
 
+### Alt maddeler (plan turu, 31 Ağustos 2026)
+
+Sıra bağımlılıkla belirlendi; her madde kendinden öncekinin verisine
+dayanıyor.
+
+**[x] MEMBER-5a · Doğum tarihi ve üyenin kendi bilgilerini düzenlemesi**
+(= MEMBER-2). Her şeyin önkoşulu: yaş verisi bugün yeni üyelerde hiç
+oluşmuyor, 18 yaş altı tespiti yapılacak bir şey yok. Üye profiline
+düzenleme ekranı (ad, telefon, doğum tarihi) + kural: üye kendi dokümanında
+bu üç alanı yazabilsin. `isMinor` alanı **tutulmaz** — yaş her gün değişir,
+doğum tarihinden türetilir.
+
+**Çözüldü (31 Ağustos 2026):** `member/edit-profile.tsx` + kural (üye kendi
+dokümanında `userDisplayName`, `phone`, `birthDate` yazabilir — yöneticininki
+gibi ayrı bir kural, çünkü onay kuralı her yazımda `status` doğruluyor).
+`pending` durumunda da açık: kayıt ekranının "sonra sorulur" dediği bilgiyi
+dolduran kişi tam olarak onay bekleyen kişi.
+
+Tarih yardımcıları `utils/birthDate.ts`'e çıkarıldı — artık iki ekran aynı
+alanı yazıyor, ayrı ayrışan iki parser tek alana iki farklı şey yazardı.
+`parseBirthDate` ay/gün taşmasını da yakalıyor (`new Date(1990, 12, 32)`
+hata vermeden Ocak 1991'e kayıyordu). `ageFrom` türetilmiş — `age`/`isMinor`
+alanı yazıldığı gün doğru, ertesi gün yanlış olur ve beslediği tek karar
+(bu üye reşit mi) bayatlamaması gereken karardır.
+
+Profilde eksik doğum tarihi uyarı renginde çağrılıyor: kayıt ekranı sormaya
+söz verip sormadığı için üyelerin çoğunda yok ve eksik olduğundan
+şüphelenmeleri için bir sebep yok.
+
+Yol üzerinde: `admin/edit-member.tsx` hata metni ham `'#F87171'` kullanıyordu
+— bu koyu temanın `danger` token'ı, yani açık temada yanlış renkti
+(AGENTS §3). Token'a çevrildi.
+
+**[ ] MEMBER-5b · Ebeveyn bağlantısı ve iki taraflı onay.** Çocuğun
+dokümanında `guardianId` + `guardianStatus` (`pending` / `approved`).
+Ebeveyn zaten üye değilse davet akışı. Mevcut `status: 'pending'` salon
+onayı; ebeveyn onayı **ayrı** bir eksen — ikisini tek alana sıkıştırmak
+"hangi onay eksik" sorusunu cevapsız bırakır. KVKK gereği onay kayıt altına
+alınır (ne zaman, hangi ebeveyn, hangi metin sürümü). `where('guardianId',
+'==', uid)` için **yeni composite index**.
+
+**[ ] MEMBER-5c · Ebeveyn yetkisi — kurallar ve callable'lar.**
+`isGuardianOf(childUid)` yardımcısı (çocuğun dokümanını `get()` edip
+`guardianId` kontrolü — kurallar bunu yapabilir, sorgu değil). Etkilenen:
+`pt_sessions`, `classes`, `payments`, `member_packages`, `member_credits`,
+`checkins`, `measurements`. `bookPtSessions` ve `cancelPtSession` bugün
+`request.auth.uid`'i üye sanıyor; ebeveyn çağırdığında çocuk adına
+çalışmalı.
+
+**[ ] MEMBER-5d · Ebeveynin karekodla girişi.** Karar 3 bir *sorgu* ("çocuklarından
+herhangi biri") — kural sorgu çalıştıramaz, yani aynaya gider.
+`syncMemberEntitlements` genişletilir: çocuğun paketi değişince ebeveynin
+önbelleği de yeniden hesaplanır. Girişin çocuğun kredisini **tüketmemesi**
+şart; `accessReason` için ayrı bir değer.
+
+**[ ] MEMBER-5e · Ebeveyn ödemesi ve toplu ödeme.** `payments.submittedBy`
+(ödeme çocuğun defterine, ebeveyn tarafından gönderildiği görünür) ve
+`paymentGroupId`. Eşit bölme: kalan **kuruş** son çocuğa, toplam girilen
+tutara birebir eşit olmalı. `writeBatch` — N kaydın yarısı yazılırsa
+ebeveyn ne ödediğini bilemez.
+
 ---
 
 ## Bildirimlerde ortak eksik — derin bağlantı
