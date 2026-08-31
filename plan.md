@@ -1000,9 +1000,24 @@ Dönüştürülenler: paket teklifi, randevu al, ödemelerim, durumum, paket kar
 Alt başlık aciliyeti taşıyabiliyor (`subtitleTone`) — bekleyen ödeme
 bildirimi ve bitmek üzere olan paket uyarı renginde.
 
-**Kalan:** aynı sözleşme henüz yalnızca üye Bugün ekranına uygulandı.
-Yönetici panel kartları, antrenör profili ve `progress.tsx` hâlâ kendi
-düzenlerini kuruyor — sonraki turda.
+**Tamamlandı (31 Ağustos 2026):** kalan yüzeyler de sözleşmeye alındı.
+
+Envanter çıkarılınca **ikinci bir kart ailesi** göründü: küçük başlık +
+eşit bölünmüş ortalanmış rakamlar + 1px ayraçlar. Bu düzen altı yerde elle
+kopyalanmıştı → `components/StatCard.tsx`. Eksik değer sıfır değil, kısa
+çizgi olarak çiziliyor — "veri yok" ile "sıfır" farklı cevaplardır.
+
+Dönüştürülenler: antrenör profili (RANDEVULARIM, ÜYE VE PROGRAMLAR),
+`member/progress.tsx` (SALONA GELİŞ, ANTRENMAN ÖZETİ — rakamların altındaki
+tek satırlık dipnot için `footnote`), yönetici panelindeki katılım isteği
+kartı (`InfoCard` + yeni `initials` prop'u; baş harf dairesi de artık tek
+yerde çiziliyor).
+
+**Bilinçli dönüştürülmedi:** `admin/index.tsx`'teki üçlü sayaç şeridi
+(aktif üye / bekleyen istek / bu ay gelir). Görsel olarak `StatCard`'a
+benziyor ama üçü ayrı dokunma hedefi ve iki farklı ekrana gidiyor; tek
+karta birleştirmek üç hedefi bire indirirdi. Farklı bir aile (dokunulabilir
+kutucuk), aynı düzen değil.
 
 ---
 
