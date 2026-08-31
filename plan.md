@@ -933,6 +933,40 @@ kayda kaydırması/vurgulaması gerekecek — şu an bildirim yalnızca ekranı
 açıyor, belirli bir kayda götürmüyor. Bu eksik **tüm bildirimler için**
 geçerli, ayrıca not edildi.
 
+### ADMIN-6 · Ödeme eklerken üye seçimi kullanılamaz halde ⚠️ **kullanıcı bildirdi**
+
+`admin/payments.tsx` → "+ Ödeme ekle" → üye seçimi **51 üyenin tamamını
+sarmalanmış çip olarak** basıyor (`members.map` → `<Chip>`, satır 169).
+
+- Arama yok, gruplama yok, kaydırma kabı yok.
+- Tutar alanı bu çip duvarının **altına** itiliyor; yönetici asıl işi yapmak
+  için önce 51 çip geçmek zorunda.
+- Salon büyüdükçe **kötüleşiyor** — 200 üyede ekran tamamen kullanılamaz.
+
+**Bu, UX-2'nin tekrarı.** O da aynı sebeple çıkmıştı: 7 test üyesiyle
+tasarlanan ekran, göçten sonra 51 üyede kırıldı. Aynı sınıf hata, farklı
+ekran — yani tekil bir hata değil, **desen**.
+
+`admin/staff.tsx` de aynı şeyi yapıyor (51 üyeyi kart olarak basıyor, satır
+198). `ScrollView` içinde olduğu için çip duvarı kadar kötü değil, ama rol
+atanacak kişiyi bulmak yine elle kaydırmayı gerektiriyor.
+
+**Önerilen çözüm — asıl sorun akışın yönü.** Ödeme "bir üyeye" yapılır;
+doğru başlangıç noktası kişidir, ödeme ekranı değil:
+
+1. **`admin/member.tsx`'e "+ Ödeme ekle" ekle.** Yönetici zaten o kişiye
+   bakıyorken ödeme girmesi en kısa yol — seçim adımı tamamen ortadan
+   kalkıyor. (Ekranda bugün yalnızca "+ Paket ata" var.)
+2. **Ödemeler ekranındaki seçim ise aramaya dönmeli:** bir `TextField` +
+   eşleşen ilk birkaç sonuç. Hiç yazılmadan liste basılmamalı.
+3. Aynı arama deseni `staff.tsx`'e de uygulanmalı.
+
+**Genel kural olarak plana giriyor:** üye listesi basan her yeni ekran
+arama/limit ile başlamalı; 51 üyelik salon artık test verisi değil, gerçek
+ölçek.
+
+---
+
 ### ADMIN-5 · Panel yüzeysel
 
 `admin/index.tsx`: bugün giren sayısı, aktif üye, bekleyen istek, bu ay
@@ -950,8 +984,10 @@ P4-5 (raporlama) ile örtüşüyor.
 3. **ADMIN-1 salon adı + iletişim** — ad için denormalize kopyaları
    güncelleyen Cloud Function gerekiyor, iletişim için şema zaten hazır.
 4. **ADMIN-2 çalışma saatleri** — yeni şema alanı; UX-4'ün önkoşulu.
-5. **ADMIN-4 düzeltme yolları** — ters kayıt deseni kararı gerektiriyor.
-6. ADMIN-5 → P4-5 ile birlikte.
+5. **ADMIN-6 ödeme/üye seçimi** — kullanıcı bildirdi, ölçekle kötüleşiyor.
+   Üye detayına "+ Ödeme ekle" eklemek en kısa yol.
+6. **ADMIN-4 düzeltme yolları** — ters kayıt deseni kararı gerektiriyor.
+7. ADMIN-5 → P4-5 ile birlikte.
 
 ---
 
