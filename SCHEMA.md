@@ -103,14 +103,30 @@ düz değer olarak kopyalanır.
 | `address` | string? | Katılım akışında gösterilir; herkese açık olması bilinçli |
 | `cancellationHours` | number? | PT randevu iptalinde kredi iadesi sınırı — yoksa varsayılan 24. Henüz yönetici ayarları ekranı yok, alan elle/backfill ile yazılır (PKG-11, Faz 1.9) |
 
+| `createdAt` / `updatedAt` | Timestamp | |
+
 ⚠️ **İletişim bilgisi bu dokümana yazılmaz.** Salon dokümanı her oturum açmış
 kullanıcıya okunabilir (kodla katılım). Hassas alanlar
 `tenants/{id}/private/{docId}` alt koleksiyonuna gider — okuma
 `isTenantMember`, yazma `isTenantAdmin`.
-| `createdAt` / `updatedAt` | Timestamp | |
 
 **Kurallar:** okuma = her oturum açmış kullanıcı (kodla katılım için).
 Yazma = kiracı yöneticisi; `ownerUid` ve `code` değişmez. Silme kapalı.
+
+⚠️ `name` değişince `tenant_memberships.tenantName` kopyaları da güncellenmeli.
+Bunu `syncTenantNameToMemberships` (onDocumentWritten, `tenants/{tenantId}`)
+yapıyor — yalnızca ad gerçekten değiştiyse çalışır, yoksa her marka
+düzenlemesi tüm listeyi yeniden yazardı. 450'lik batch'lerle yazıyor.
+
+### `tenants/{id}/private/contact` — salon iletişim bilgisi
+| Alan | Tip | Not |
+|---|---|---|
+| `phone` | string? | Boş bırakılırsa alan silinir |
+| `email` | string? | Boş bırakılırsa alan silinir |
+| `updatedAt` | Timestamp | |
+
+Yönetici ayarları ekranından yazılır (`updateTenantContact`, `merge: true`).
+Okuma salon üyesine açık, yazma yalnızca yöneticide.
 
 **Küresel `admin` claim'i GymEntra koleksiyonlarında geçerli değildir**
 (plan.md P1-6). Beyaz etiket üründe platform süper-kullanıcısı olmaz; destek

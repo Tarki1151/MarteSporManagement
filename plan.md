@@ -853,7 +853,7 @@ eklendi; ders listesine kaydırmalı **Düzenle / İptal et** bağlandı.
   değiştiriyor.
 - `updateClass` bilinçli olarak rezervasyon dizilerine dokunmuyor.
 
-### ADMIN-1 · Salon kimliği düzenlenemiyor ⚠️ **kullanıcı bildirdi**
+### [x] ADMIN-1 · Salon kimliği düzenlenemiyor ⚠️ **kullanıcı bildirdi**
 
 `admin/settings.tsx` yalnızca **markalaşma** yapıyor: logo, ana renk, tema.
 Salon adı ekranda `branding.appName`'den geliyor ama kod
@@ -869,6 +869,28 @@ dokümanlık bir düzenleme değil, bir Cloud Function işi.
 
 İletişim bilgisi için şema zaten hazır (`tenants/{id}/private/contact`,
 SCHEMA.md'de yazılı, kuralı var) ama **istemcide tek satır kod yok**.
+
+**Çözüldü (31 Ağustos 2026):** ayarlar ekranına "Salon bilgileri" bölümü —
+ad, adres, telefon, e-posta. Ad hem `tenants.name`'e hem
+`branding.appName`'e yazılıyor; ikisi ayrı kalırsa başlık değişip üyenin
+katıldığı salon adı eskisi olarak kalırdı.
+
+Denormalize kopyalar `syncTenantNameToMemberships` ile yayılıyor
+(`onDocumentWritten`, yalnızca ad gerçekten değiştiyse — marka düzenlemeleri
+bu dokümanı çok daha sık yazıyor ve her biri tüm listeyi yeniden yazardı).
+450'lik batch: 500 sınırında büyük bir salonun kuyruğu sessizce düşerdi.
+
+Telefon/e-posta `private/contact`'a gidiyor, salon dokümanına değil — o
+doküman her oturum açmış kullanıcıya okunabilir. İletişim **okuması**
+başarısız olursa kaydetme o iki alana dokunmuyor: boş alanları yazmak hiç
+gösteremediğimiz bilgiyi silerdi.
+
+Yol üzerinde düzeltildi: `save()` `catch`siz `try/finally` idi — yönetici
+Kaydet'e basıyor, spinner duruyor, hatanın olduğunu hiçbir şey söylemiyordu
+(AGENTS §2).
+
+**Kalan:** `tenants.code` (katılım kodu) hâlâ değiştirilemiyor. Kurallar
+bilinçli olarak değişmez tutuyor; kod değişimi ayrı bir karar.
 
 ### ADMIN-2 · Salon çalışma saatleri diye bir kavram yok
 
