@@ -1319,13 +1319,53 @@ onayı; ebeveyn onayı **ayrı** bir eksen — ikisini tek alana sıkıştırmak
 alınır (ne zaman, hangi ebeveyn, hangi metin sürümü). `where('guardianId',
 '==', uid)` için **yeni composite index**.
 
-**[ ] MEMBER-5c · Ebeveyn yetkisi — kurallar ve callable'lar.**
+**[x] MEMBER-5c · Ebeveyn yetkisi — kurallar ve callable'lar.**
 `isGuardianOf(childUid)` yardımcısı (çocuğun dokümanını `get()` edip
 `guardianId` kontrolü — kurallar bunu yapabilir, sorgu değil). Etkilenen:
 `pt_sessions`, `classes`, `payments`, `member_packages`, `member_credits`,
 `checkins`, `measurements`. `bookPtSessions` ve `cancelPtSession` bugün
 `request.auth.uid`'i üye sanıyor; ebeveyn çağırdığında çocuk adına
 çalışmalı.
+
+**Çözüldü (31 Ağustos 2026).** `isGuardianOf(tid, childUid)` — üyelik
+kimliği `{tenantId}_{uid}` olduğu için sorgu değil `get()`, kuralda
+ifade edilebilmesinin tek sebebi bu. **Yalnızca `approved` yetki taşıyor:**
+`pending` bağ ebeveyne çocuğun üyelik satırını okutuyor (göremediği bir
+isteği değerlendiremez) ama başka hiçbir şey vermiyor.
+
+Okuma açıldı: `member_credits`, `member_packages`, `pt_sessions`,
+`checkins`, `payments`, `measurements`.
+
+**Ders rezervasyonu tek-uid modelini kırıyordu.** Mevcut `isSelfArrayAdd`
+yalnızca `request.auth.uid`'i ekletiyor; ebeveyn *çocuğun* uid'sini ekliyor.
+`isGuardianArrayAdd`/`Remove` eklendi — eklenen uid diff'ten okunuyor
+(`&&` kısa devre yaptığı için `[0]` ancak boyut kontrolleri tek eleman
+olduğunu kanıtladıktan sonra çalışıyor). `canBookGroupClass` uid parametresi
+aldı: kontrol edilen hak **çocuğunki**, ebeveynin değil — karar 2 ebeveynin
+paketi olmasını aramıyor.
+
+Ödeme bildirimi: ebeveyn açabiliyor ama kayıt **çocuğun** defterinde
+(`memberId` = çocuk) ve `submittedBy` ebeveyni yazıyor. Bu olmadan bir
+ebeveynin üç çocuğu için üç ödemesi tek kişinin geçmişinde toplanırdı.
+
+Callable'lar: `bookPtSessions` opsiyonel `memberId` alıyor (yokken çağıran
+kendisi — mevcut her çağrı aynen çalışıyor); `cancelPtSession` ebeveyni de
+yetkili sayıyor.
+
+⚠️ **Yol üzerinde bulunan hata:** iptal iadesi mantığında
+`shouldRefund = isTrainer || isAdmin`, sonra `if (isMember && ...)`.
+Ebeveyn hiçbir dala düşmüyordu, yani iptal ediyor ama **hiç iade
+alamıyordu** — çocuk kendi iptal etseydi alacaktı. `isGuardian` eklendi.
+
+12 test. **157/157 geçiyor.**
+
+Ekranlar: `member/child.tsx` — ebeveynin çocuğun paketini, kalan ders
+hakkını ve yaklaşan randevularını gördüğü, randevu iptal edebildiği ekran.
+
+**Kalan (UI):** ebeveynin çocuk adına **yeni randevu alması** için ekran yok.
+Sunucu desteği hazır (`bookPtSessions` `memberId` alıyor, kurallar ders
+rezervasyonuna izin veriyor) ama randevu alma akışı kendi ekranı; sessizce
+"tamamlandı" demiyorum.
 
 **[ ] MEMBER-5d · Ebeveynin karekodla girişi.** Karar 3 bir *sorgu* ("çocuklarından
 herhangi biri") — kural sorgu çalıştıramaz, yani aynaya gider.
