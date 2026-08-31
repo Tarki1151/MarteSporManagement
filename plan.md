@@ -892,7 +892,7 @@ Kaydet'e basıyor, spinner duruyor, hatanın olduğunu hiçbir şey söylemiyord
 **Kalan:** `tenants.code` (katılım kodu) hâlâ değiştirilemiyor. Kurallar
 bilinçli olarak değişmez tutuyor; kod değişimi ayrı bir karar.
 
-### ADMIN-2 · Salon çalışma saatleri diye bir kavram yok
+### [x] ADMIN-2 · Salon çalışma saatleri diye bir kavram yok
 
 Şemada da yok, ekranda da. Bunun etkisi UX-4'te not edilmişti: antrenör
 çalışma saati tanımlarken 06:00–22:00 arası her saati seçebiliyor, salonun
@@ -901,6 +901,42 @@ kapalı olduğu saate randevu açabiliyor. Salon saati olmadan UX-4'ün
 
 `tenants` altına `openingHours` (haftalık gün→pencere haritası, tatil
 istisnalarıyla) gerekiyor.
+
+**Çözüldü (31 Ağustos 2026):** `tenants.openingHours`, `Date.getDay()`
+numaralarıyla anahtarlı. `null` "o gün kapalı", alanın hiç olmaması "salon
+saatlerini hiç girmemiş" — her mevcut salon alandan eski olduğu için bu
+ikisinin ayrı okunması şart, yoksa tüm salonlar bir gecede kapalı olurdu.
+
+Yönetici tarafı kendi ekranında (`admin/hours.tsx`): tek seferde tek gün
+açılıyor. Yedi satır × iki stepper tek ekranda on dört kontrol demekti;
+salon bir günü düzenleyip çıkıyor. "Bu saatleri tüm açık günlere uygula"
+var — çoğu salon aynı pencereyi altı yedi gün işletiyor, kapalı günler
+kapalı kalıyor.
+
+**Kısıt (UX-4):** antrenör müsaitliği bu pencereye kelepçeli. Salonun kapalı
+olduğu gün hiç açılamıyor; açık günde stepper salon penceresinin dışına
+çıkmıyor. Kayıtlı bir değer zaten dışarıda kalmışsa (salon saatleri sonradan
+değişmişse) sınır yalnızca o tarafta genişliyor — antrenör elindekini
+koruyup içeri yürüyebiliyor, ekran hiç dokunmadığı saatleri sessizce
+yeniden yazmıyor. Uyarı satırı da taşmayı söylüyor.
+
+Bu ekranda iki tane 17'lik çip duvarı vardı (başlangıç ve bitiş, gün başına)
+— ders formunun çip duvarıyla aynı hata, aynı şekilde kaldırıldı.
+`TimeStepper` opsiyonel `min`/`max` aldı: sınırsızken sarıyor, sınırlıyken
+kırpıyor. Sarma sınırlı bir aralıkta karşı uca sıçratırdı.
+
+Üye tarafı: `GymInfoCard` (üye profili) — haftalık saatler bugün vurgulu,
+adres, telefon ve e-posta (dokunulunca arama/e-posta açılıyor). Bu olmadan
+ADMIN-1'in iletişim alanları yazılabilir ama okunamazdı; kimse kaydedileni
+göremiyordu.
+
+**Yapılmadı:** tatil/istisna günleri. Haftalık pencere kurulduktan sonra
+ayrı bir veri şekli ve ayrı bir ekran gerektiriyor — bilinçli olarak sonraki
+tura bırakıldı, sessizce atlanmadı.
+
+**Karar verilmedi:** ders saatleri (`admin/classes.tsx`) hâlâ kelepçesiz.
+Kural müsaitlik için konuşuldu; dersin de salon saatleri içinde kalması
+mantıklı görünüyor ama kullanıcıya sorulmadan genişletilmedi.
 
 ### [~] ADMIN-3 · Yöneticiye bildirim gitmiyor ⚠️ **kullanıcı bildirdi**
 
@@ -1059,7 +1095,7 @@ P4-5 (raporlama) ile örtüşüyor.
    olarak en acil eksik.
 3. **ADMIN-1 salon adı + iletişim** — ad için denormalize kopyaları
    güncelleyen Cloud Function gerekiyor, iletişim için şema zaten hazır.
-4. **ADMIN-2 çalışma saatleri** — yeni şema alanı; UX-4'ün önkoşulu.
+4. ~~ADMIN-2 çalışma saatleri~~ — tamamlandı (31 Ağustos).
 5. **ADMIN-6 ödeme/üye seçimi** — kullanıcı bildirdi, ölçekle kötüleşiyor.
    Üye detayına "+ Ödeme ekle" eklemek en kısa yol.
 6. **ADMIN-4 düzeltme yolları** — ters kayıt deseni kararı gerektiriyor.
