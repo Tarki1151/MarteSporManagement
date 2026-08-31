@@ -934,9 +934,13 @@ göremiyordu.
 ayrı bir veri şekli ve ayrı bir ekran gerektiriyor — bilinçli olarak sonraki
 tura bırakıldı, sessizce atlanmadı.
 
-**Karar verilmedi:** ders saatleri (`admin/classes.tsx`) hâlâ kelepçesiz.
-Kural müsaitlik için konuşuldu; dersin de salon saatleri içinde kalması
-mantıklı görünüyor ama kullanıcıya sorulmadan genişletilmedi.
+**Ders saatleri de kelepçelendi (31 Ağustos, kullanıcı onayıyla):** aynı
+pencere `admin/classes.tsx`'e de uygulandı. Farkı: ders bir *tarih* seçiyor,
+gün değil — pencere seçilen günün `getDay()`'inden geliyor ve gün
+değiştikçe kelepçe de değişiyor. Ders kapanışa kadar **bitmek** zorunda,
+sadece kapanıştan önce başlamak yetmiyor; tavan bu yüzden süreyle birlikte
+kayıyor. Salonun kapalı olduğu gün ders hiç eklenemiyor — düğme kapalı ve
+`submit` de ayrıca kontrol ediyor, düğme tek giriş yolu değil.
 
 ### [~] ADMIN-3 · Yöneticiye bildirim gitmiyor ⚠️ **kullanıcı bildirdi**
 
