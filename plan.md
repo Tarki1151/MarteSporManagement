@@ -1401,11 +1401,42 @@ olmaktan çıkıp açık listeye döndü.
 
 3 test. **160/160 geçiyor.**
 
-**[ ] MEMBER-5e · Ebeveyn ödemesi ve toplu ödeme.** `payments.submittedBy`
+**[x] MEMBER-5e · Ebeveyn ödemesi ve toplu ödeme.** `payments.submittedBy`
 (ödeme çocuğun defterine, ebeveyn tarafından gönderildiği görünür) ve
 `paymentGroupId`. Eşit bölme: kalan **kuruş** son çocuğa, toplam girilen
 tutara birebir eşit olmalı. `writeBatch` — N kaydın yarısı yazılırsa
 ebeveyn ne ödediğini bilemez.
+
+**Çözüldü (31 Ağustos 2026).** `utils/splitAmount.ts` **tam sayı kuruş**
+üzerinden bölüyor, lira üzerinden değil: 1000 / 3 kayan noktada
+333.33333333333331 ve üç tanesi 1000'e geri toplanmıyor. Bu fonksiyonun
+varlık sebebi tam olarak toplanması. Kalan **son paya** ekleniyor — kuruşu
+etrafa dağıtmak yerine, çünkü kural salon sahibinin gözle
+doğrulayabileceği tek cümle olmalı: herkes eşit öder, sonuncu tek kuruşu
+karşılar. Yedi vakada toplam girilen tutara birebir eşit çıktı
+(1000/3, 100/7, 0.03/2, 1234.56/5 dahil).
+
+`writeBatch`: yarısı yazılmış bir bölme, ebeveynin 900₺ ödeyip defterde
+600₺ görmesi ve hangi çocuğun eksik olduğunu bilememesi demek.
+`paymentGroupId` istemcide üretiliyor — sunucunun atadığı bir kimlik, ancak
+içinde bulunması gereken yazımdan *sonra* var olurdu.
+
+Bölünmüş tutarlar **gönderilmeden önce** ekranda gösteriliyor: "eşit
+bölünecek" birinin parası hakkında verilmiş bir söz, tek kuruş sonradan
+sürpriz olmamalı.
+
+Yönetici tarafında bildirim satırı artık "… · Ahmet Yılmaz ödedi" ve grup
+kaydıysa tek ödemenin parçası olduğunu söylüyor. Bu olmadan yönetici,
+ödemeye hiç gelmemiş bir üyeden 300₺ bildirimi görüyordu.
+
+Kural değişikliği **gerekmedi** — 5c'deki guardian ödeme dalı toplu yazımı
+zaten karşılıyor. 4 test eklendi; en önemlisi: batch'teki tek bir izinsiz
+kayıt tüm batch'i düşürüyor. **164/164 geçiyor.**
+
+### MEMBER-5 bloğu tamamlandı (5a–5e)
+
+Kalan UI: ebeveynin çocuk adına **yeni randevu alması** ekranı (5c'de not
+edildi). Sunucu desteği hazır.
 
 ---
 

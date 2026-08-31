@@ -338,6 +338,8 @@ kendisi için. **Update/delete kapalı** — geçmiş düzeltilemez.
 | `kind` | `'charge' \| 'refund'` | **PKG-6, 20 Ağustos 2026.** Yoksa `'charge'` sayılır (geriye dönük uyumlu). Tutar her zaman pozitif — yön `kind` taşır, negatif tutar raporlamayı kirletir |
 | `note` | string? | |
 | `createdAt` / `confirmedAt` | Timestamp | |
+| `submittedBy` / `submittedByName` | string? | Parayı fiilen veren kişi, kayıt sahibi üyeden farklıysa (MEMBER-5e). Ebeveyn çocuk için öderken `memberId` çocuk kalır — defter çocuk bazında doğru kalmalı — bu alan ebeveyni yazar |
+| `paymentGroupId` | string? | Tek bir ödeme eyleminden doğan kayıtları birbirine bağlar. 900₺ üç çocuğa bölününce defterde üç satır olur; bu olmadan salon bunu üç ayrı ödemeden ayırt edemez |
 
 **Akış:** Yönetici girerse doğrudan `confirmed`. Üye bildirirse `pending` →
 yönetici `confirmed`/`rejected` yapar. **İstisna:** bir paket düşürmesinin
