@@ -969,7 +969,7 @@ kaçırırdı. Fan-out `notifyTenantAdmins` yardımcısına çıkarıldı,
 
 **Kalan:** ödeme bildirimi, paket teklifi yanıtı, PT iptali, paket bitişi.
 
-### [~] ADMIN-4 · Yanlış girilen veri düzeltilemiyor
+### [x] ADMIN-4 · Yanlış girilen veri düzeltilemiyor
 
 - **Ödeme:** `recordPayment` var, düzenleme/silme yok. Kural da
   `delete: if false`. Yanlış tutar girildiyse defterde kalıcı.
@@ -1032,9 +1032,30 @@ soğuk açılış için `getLastNotificationResponseAsync` kuruyor,
 olarak taşıyor. Hedef ekran o satırı çerçeveliyor. **Bu tüm bildirimler
 için altyapı** — derin bağlantı maddesi böylece kapandı.
 
-**Kalan:** paket ataması geri alınamıyor (`member_packages` `update: false`,
-`delete: false`). Ters kayıt deseni orada da uygulanabilir ama krediyi de
-geri alması gerektiği için callable işi — ayrı madde.
+**Çözüldü — paket kısmı (1 Eylül 2026).** `cancelPackageAssignment`
+callable'ı. Kural değil callable, `bookPtSessions` ile aynı sebepten: bir
+kotayı geri almak, aynı krediye koşan bir rezervasyonla hakemlik gerektiriyor
+ve kurallar bunu yapamaz. `member_packages` istemciye **kapalı kalıyor** —
+testler bunu doğruluyor (yönetici bile doğrudan iptal edemiyor).
+
+Atama silinmiyor, `cancelled` işaretleniyor: üyenin geçmişi bunun olduğunu
+ve geri alındığını göstermeli — ödemeyi düzenlemek yerine ters kaydetmekle
+aynı gerekçe. `syncMemberEntitlements` erişim aynasını durum değişiminden
+kendi başına yeniden hesaplıyor.
+
+**Yaklaşan randevu varsa reddediyor.** Bir yöneticinin hatasını toplamak
+için birinin randevularını sessizce iptal etmek, yöneticiye onları önce
+bilerek iptal ettirmekten daha kötü bir sonuç; hata mesajı kaç randevunun
+engellediğini söylüyor. `creditId in [...]` sorgusu 30'luk parçalara
+bölünüyor — ileride bir değişiklik kontrolü sessizce kırpıp rezervasyonları
+geçirmesin diye. Yeni index: `pt_sessions` `creditId + date`.
+
+Harcanmış krediler `used` sayısını koruyor: üye o dersleri gerçekten aldı ve
+sıfırlamak antrenörün geçmiş seanslarını açıklamasız bırakırdı. Kredi durumu
+`revoked` — `expired` değil, çünkü kotanın süresi dolmadı, geldiği atama
+geri alındı; "derslerim nereye gitti" sorusuna doğru cevap veriyor.
+
+4 test, **175/175 geçiyor.**
 
 ### ADMIN-6 · Ödeme eklerken üye seçimi kullanılamaz halde ⚠️ **kullanıcı bildirdi**
 
