@@ -793,16 +793,17 @@ render'ı azaltır.
 
 ## P4 — Ürün boşlukları
 
-- [ ] **P4-1 · Ders rezervasyonu üyeye görünür değil.** `classes` ekranı var ama
-      üyenin "rezervasyonlarım" görünümü yok.
+- [x] **P4-1 · Ders rezervasyonu üyeye görünür değil.** → MEMBER-3 ile
+      çözüldü (1 Eylül 2026): `member/bookings.tsx`, grup dersi + PT tek
+      listede.
 - [ ] **P4-2 · Antrenör üyenin ilerlemesini göremiyor.** Program yazıyor ama
       üyenin ölçümleri/antrenman geçmişi antrenöre kapalı (kurallar izin
       veriyor, ekran yok). Koçluk için temel ihtiyaç.
 - [ ] **P4-3 · Bildirim tercihleri yok.** Push açık/kapalı ayarı, kategori
       bazlı tercih yok. GDPR/KVKK açısından da beklenir.
-- [ ] **P4-4 · Üye profil düzenleme yok.** Ad, telefon, doğum tarihi, fotoğraf
-      düzenlenemiyor. Kayıt ekranındaki "Doğum günü, fotoğraf vs. SONRA
-      sorulur" vaadi karşılanmamış.
+- [x] **P4-4 · Üye profil düzenleme yok.** → MEMBER-5a ile çözüldü
+      (31 Ağustos 2026): ad, telefon, doğum tarihi. **Fotoğraf hâlâ yok** —
+      Storage yükleme akışı gerektiriyor, ayrı iş.
 - [ ] **P4-5 · Yönetici raporlaması yok.** Aylık gelir, katılım oranı, aktif
       üye trendi — salon sahibinin ilk soracağı şeyler.
 - [ ] **P4-6 · Çoklu salon üyeliği desteklenmiyor.** `getActiveMembership()`
@@ -2435,7 +2436,7 @@ harcayarak randevu alabiliyor.
 
 ---
 
-### [ ] UX-4 · Antrenör çalışma saatleri ekranı: genel UX yenilemesi gerekiyor
+### [x] UX-4 · Antrenör çalışma saatleri ekranı: genel UX yenilemesi gerekiyor
 
 `trainer/availability.tsx`'teki gün açma akışı kullanışsız bulundu (26 Ağustos
 2026, kullanıcı testi). Bugünkü haliyle:
@@ -2450,6 +2451,16 @@ harcayarak randevu alabiliyor.
 - Gün ve saat seçimi genel olarak fazla adımlı/hantal (7 gün × 2 saat listesi ×
   17 chip) — daha basit bir etkileşim modeli (örn. tek bir saat aralığı
   seçici/slider, ya da "her gün aynı saatler" kısayolu) değerlendirilmeli.
+
+**Çözüldü (31 Ağustos 2026, ADMIN-2 ile birlikte).** Üç maddenin üçü de:
+- İki 17'lik çip duvarı kalktı, yerine kelepçeli `TimeStepper`.
+- Bitiş artık başlangıçtan önce olamıyor (`endMin = window.start`); başlangıç
+  bitişin ötesine itilirse bitiş de birlikte kayıyor, negatif pencere
+  kalmıyor — o pencere sessizce hiç slot üretmezdi.
+- Salon çalışma saatleri kelepçesi eklendi; salonun kapalı olduğu gün hiç
+  açılamıyor.
+
+Detay ADMIN-2 maddesinde.
 
 **İstenen davranış** (kullanıcı notu):
 - Başlangıç saati seçildikten **sonra**, Bitiş listesinde yalnızca o saatten
