@@ -86,9 +86,9 @@ bilinçli olarak böyle mi kalacak? Konuşulmadan kod yazılmamalı.
 `react-native-gesture-handler` **artık kullanılıyor** (LegalLinks, kaydırmalı
 satırlar) — liste yeniden doğrulanmalı, `npx expo-doctor` ile.
 
-**14. P5-1 · Mobil tarafta test yok.** Kural testleri 175'e çıktı ama
-istemcide birim/bileşen testi hiç yok. `splitAmount`, `ageFrom`,
-`parseBirthDate`, `computeFreeSlots` gibi saf fonksiyonlar en ucuz başlangıç.
+**14. P5-1 · Test kapsamı.** Kural tarafı 175, mobil taraf 94 test
+(2 Eylül 2026). Kalan: bileşen/render testi hiç yok — `react-native`'i
+ayrıştırabilen bir kurulum gerektiriyor, ayrı bir iş.
 
 **15. P4-7 · i18n.** Tüm metinler koda gömülü. İhracat düşünülene kadar
 gerekmiyor; sıranın sonunda olmasının sebebi bu.
@@ -1632,7 +1632,21 @@ gerekiyor.
       **Kapsamayanlar (bu turda eklendi):** `programs`, `workout_logs`,
       `measurements`, GymEntra `payments`, `pt_sessions`, `calendar_shares`,
       `push_tokens` ve çapraz kiracı izolasyonu.
-      Kalan: mobil uygulama tarafında hiç test yok (birim/bileşen).
+      **İkinci düzeltme (2 Eylül 2026):** "mobil tarafta hiç test yok" da
+      yanlıştı — `vitest` kurulu ve 8 test dosyası zaten vardı. Bu turda
+      ayrıca: `splitAmount`, `birthDate` (parse/format/yaş), `revenue`
+      (işaretli toplam) ve `openingHours` için testler eklendi.
+      **13 dosya / 94 test.**
+
+      Bu turda bulunan iki şey:
+      - Mevcut bir test **düşüyordu**: MEMBER-5d'nin eklediği ebeveyn
+        sorgusu, `getDocs` stub'ının `{}` döndürmesi yüzünden patlıyordu.
+        Üretim hatası değil, mock boşluğuydu; stub gerçek boş bir
+        `QuerySnapshot`'a çevrildi.
+      - Stepper'ların saat/tarih aritmetiği bileşen dosyalarında duruyordu ve
+        **test edilemiyordu** — bir bileşen `react-native` import ediyor,
+        test koşucusu onu ayrıştıramıyor. `utils/time.ts`'e taşındı; zaten
+        AGENTS §3'e göre sunum bileşeninde iş mantığı olmamalıydı.
 
 - [x] **P5-7 · `firebase deploy --only functions` eski kodu yüklüyordu.**
       `firebase.json`'da `predeploy` hook'u yoktu; `npm run build` hiç
