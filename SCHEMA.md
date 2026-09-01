@@ -113,6 +113,11 @@ kullanıcıya okunabilir (kodla katılım). Hassas alanlar
 **Kurallar:** okuma = her oturum açmış kullanıcı (kodla katılım için).
 Yazma = kiracı yöneticisi; `ownerUid` ve `code` değişmez. Silme kapalı.
 
+`subscription` alanı **yalnızca sunucu tarafından** yazılır:
+`revenueCatWebhook` (RevenueCat → Apple/Google makbuz doğrulaması) veya elle
+müdahale. Kural istemcinin bu alana dokunmasını engelliyor — ücretsiz kademe
+sınırı bu alanı okuduğu için, yazabilen istemci kendine sınırsız üye yazardı.
+
 ⚠️ `name` değişince `tenant_memberships.tenantName` kopyaları da güncellenmeli.
 Bunu `syncTenantNameToMemberships` (onDocumentWritten, `tenants/{tenantId}`)
 yapıyor — yalnızca ad gerçekten değiştiyse çalışır, yoksa her marka
