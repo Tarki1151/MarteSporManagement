@@ -1211,16 +1211,36 @@ Kayıt ekranı *"Doğum günü, fotoğraf vs. SONRA sorulur"* diye söz veriyor
 üyenin kendisinde hâlâ yok. Bu P4-4 ile aynı madde, artık asimetrisiyle
 birlikte kayıtlı.
 
-### MEMBER-3 · "Rezervasyonlarım" görünümü yok
+### [x] MEMBER-3 · "Rezervasyonlarım" görünümü yok
 
 Bugün ekranı yalnızca **bir sonraki** PT randevusunu gösteriyor; Dersler
 ekranı seçilen **günü** gösteriyor. Üyenin tüm yaklaşan rezervasyonlarını
 (grup dersi + PT) tek yerde gördüğü bir ekran yok. P4-1'in doğrulanmış hali.
 
-### MEMBER-4 · Giriş (check-in) geçmişi yüzeysel
+**Çözüldü (1 Eylül 2026):** `member/bookings.tsx`. Grup dersi ve PT randevusu
+**karıştırılıp saate göre sıralanıyor**, ayrı bölümlere konmuyor: üyenin
+sorusu "sırada ne var", listeyi veri modelimize göre bölmek birleştirmeyi
+ona yaptırmak olur.
+
+`watchMyUpcomingClasses` — `bookedUserIds` üzerinde `array-contains`. Ayrı
+bir rezervasyon koleksiyonu değil, çünkü uid listeleri zaten ders
+dokümanında (tek-uid toggle kuralını ifade edilebilir kılan şey o) ve
+paralel bir koleksiyon eşlenmesi gereken ikinci bir doğruluk kaynağı olurdu.
+Yeni index: `classes` `tenantId + bookedUserIds + date`.
+
+Bugün ekranındaki "YAKLAŞAN RANDEVU" başlığına "Tümü ›" eklendi — o kart
+yalnızca **bir sonrakini** gösteriyor ve giriş noktası olmadan perşembe dersi
+ile cuma randevusu olan üye ikisini birlikte hiçbir yerde göremiyordu.
+
+### [x] MEMBER-4 · Giriş (check-in) geçmişi yüzeysel
 
 `watchMyCheckins` yalnızca bu haftanın sayısını besliyor (Bugün ekranındaki
 "haftada 0/4"). Üye *"en son ne zaman geldim, bu ay kaç kez"* göremiyor.
+
+**Madde bayatmış (1 Eylül 2026 kontrolü):** `member/progress.tsx` bunu zaten
+gösteriyor — "SALONA GELİŞ" kartında bu hafta / bu ay / son 12 hafta ve
+altında "Son gelişin: …". ADMIN-7 turunda `StatCard`'a dönüştürülen kart bu.
+Yeni iş yapılmadı; madde kapatıldı.
 
 ---
 
