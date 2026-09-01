@@ -1631,10 +1631,11 @@ Takvim + Profil sekmeleri aynı anda mount olduğu için üye listesi tek başı
       hesap (Hesap Kimliği `6543189686852267211`). Kurumsal olduğu için
       bireysel hesaplara uygulanan **20 test kullanıcısı / 14 gün kapalı
       test** şartı geçerli değil: Android'in önünde takvim engeli yok.
-- [ ] **Data Safety formu** — App Privacy ile birebir tutarlı doldurulmalı
-- [ ] İçerik derecelendirme anketi
-- [ ] Mağaza materyalleri: telefon ekran görüntüleri, 1024×500 feature
-      graphic, kısa (80 kr.) ve uzun (4000 kr.) açıklama
+- [x] **Data Safety formu** — dolduruldu (1 Eylül 2026)
+- [x] İçerik derecelendirme anketi — tamamlandı
+- [x] Ekran görüntüleri — kullanıcı hazırladı (1 Eylül 2026)
+- [ ] 1024×500 öne çıkan grafik
+- [ ] Mağaza girişi metinleri — hazır, `PLAY_STORE.md` §1'den yapıştırılacak
 - [x] **`eas.json` `submit.production.android`** eklendi
       (`./secrets/play-service-account.json`, `track: internal`).
       **Dosyanın kendisi henüz yok** — Play Console → Ayarlar → API erişimi
@@ -1647,10 +1648,17 @@ Takvim + Profil sekmeleri aynı anda mount olduğu için üye listesi tek başı
 - [x] AAB (App Bundle) — düzeltme: `production` profili Android'de zaten
       varsayılan olarak AAB üretiyor. APK üreten yalnızca `preview` profili
       ve o zaten dahili test için. Eski not yanlıştı.
-- [ ] Hesap silme (P0-2) — Play'in de veri silme politikası var; ayrıca
-      Play Console'da "hesap silme URL'i" alanı doldurulmalı
-- [ ] `internal` track'e ilk yükleme ve gerçek cihaz doğrulaması (kurumsal
-      hesapta zorunlu bekleme yok, ama yayından önce kendi testimiz)
+- [x] Hesap silme — `gymentra.salt-tech-apps.com/delete-account/` yayında,
+      Play Console'daki alan dolduruldu. Sayfa `deleteMyAccount`'un gerçekte
+      yaptığına göre yazıldı (o sırada bulunan hata için bkz. aşağısı).
+- [x] `internal` track'e ilk yükleme — versionCode 2 AAB, `eas submit` ile
+      API üzerinden gitti. (Play'in "ilk sürümü elle yükle" davranışını
+      bekliyordum, gerçekleşmedi.)
+- [ ] Gerçek cihazda doğrulama: **Google ile giriş**, **push bildirimi** ve
+      **QR okutma**. Üçü de Android'de production imzasıyla hiç denenmedi;
+      önceki denemeler `preview` APK'sıylaydı ve imzası farklı.
+- [ ] Tüm beyanlar tamamlandı (1 Eylül 2026) — kalan yalnızca mağaza girişi
+      ve üretim sürümü.
 
 **Android'de bugün ne çalışıyor:** paket adı, adaptive icon, Google Sign-In
 (SHA-1/SHA-256 Firebase'de), FCM V1 servis hesabı EAS'ta, preview APK ile
