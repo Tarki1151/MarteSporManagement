@@ -21,6 +21,86 @@ kuralları, indexler, Cloud Functions) — paylaşılan Firebase projesi `taraby
 
 ---
 
+## KALAN İŞLER — sıralı (1 Eylül 2026)
+
+Bu bölüm, dosyanın geri kalanındaki açık maddelerin **tek sıralı listesi**.
+Sıra değerle değil, **bağımlılık ve risk** ile belirlendi: yayını engelleyen
+şey önce, ölçeklenince acıtan şey sonra, iyileştirme en sonda.
+
+### Kuşak 1 — yayını gerçekten engelleyenler
+
+**1. P0-1 · Freemium duvarı (IAP).** Açık maddeler içinde tek başına en
+ağırı. Bir salon 10 aktif üyeye ulaşınca 11.'yi **hiçbir zaman**
+onaylayamıyor; `paywall.tsx`'teki yükseltme düğmesi yalnızca geri gidiyor.
+Tarabya Marte için elle bir abonelik yazılarak geçici olarak açıldı, yani
+**sorun çözülmedi, ertelendi** — ikinci salon aynı duvara çarpar. RevenueCat
+projesi zaten açılmış. Gerçek satın alma akışı + sunucu tarafı doğrulama.
+
+**2. Mağaza girişini bitir (Android).** Metinler `PLAY_STORE.md` §1'de hazır,
+1024×500 öne çıkan grafik ve üretim sürümü kaldı.
+
+**3. Android'de gerçek cihaz doğrulaması.** Google ile giriş, push bildirimi
+ve QR okutma — üçü de production imzasıyla **hiç denenmedi**; önceki
+denemeler `preview` APK'sıylaydı ve imzası farklı. Bunlar çalışmıyorsa
+Android yayını anlamsız.
+
+**4. iOS mağaza kalanları.** Yaş sınırı anketi, App Review Notes'a demo
+hesap (onay bekleyen bir hesapla incelemeci hiçbir şey göremez → kesin ret),
+6.5" ekran görüntüleri.
+
+### Kuşak 2 — salon sahibinin ilk soracakları
+
+**5. P4-5 + PKG-12 · Raporlama.** Aylık gelir, katılım oranı, aktif üye
+trendi, yaklaşan paket bitişleri, ödeme yapmayanlar. Panel bugün dört sayı
+gösteriyor; sahibin ikinci sorusuna cevabı yok. ADMIN-5 de buraya katlanıyor.
+
+**6. P4-2 · Antrenör üyenin ilerlemesini göremiyor.** Program yazıyor ama
+üyenin ölçümlerini ve antrenman geçmişini göremiyor. Kurallar zaten izin
+veriyor — **yalnızca ekran eksik**, yani ucuz ve koçluk için temel.
+
+**7. PKG-10 + PKG-11 · Dondurma ve iade politikası.** İkisi aynı soruyu
+soruyor (para/hak geri nasıl döner) ve ayrı ayrı yapılırsa çelişirler.
+`cancellationHours` alanı var ama yönetici ekranı yok.
+
+### Kuşak 3 — ölçeklenince acıtanlar
+
+**8. P4-3 · Bildirim tercihleri.** Push açık/kapalı ve kategori bazlı tercih
+yok. KVKK/GDPR açısından da beklenen bir şey. Bildirim sayısı bu turda
+dörtten sekize çıktı — susturma yolu olmadan bu artış rahatsız edici olur.
+
+**9. P1-8 + P4-6 · Çoklu salon üyeliği.** Kurallar ve veri modeli destekliyor,
+istemci ilk aktif üyeliği alıp gerisini yok sayıyor. İki salona üye olan kişi
+ikincisine hiç erişemiyor.
+
+**10. UX-7 kalanı.** Antrenör takvimi, yönetici paneli ve diğer liste
+ekranları. Hook hazır; her ekranda aboneliğin `retryKey`'e bağlanması
+gerektiği için tek tek.
+
+**11. PKG-9 · Seri randevu.** "Her cuma 08:00, 8 hafta." Sahibin istediği
+kolaylık, ama tek tek almak bugün çalışıyor — engelleyici değil.
+
+### Kuşak 4 — borç ve temizlik
+
+**12. WEB-6 · Göç veri kalitesi.** Tek `name` alanında birden çok kişi olan
+kayıtlar. **Karar salon sahibinin**: ayrı üyeliklere bölünecek mi, yoksa
+bilinçli olarak böyle mi kalacak? Konuşulmadan kod yazılmamalı.
+
+**13. P3-3 · Kullanılmayan bağımlılıklar.** Dokuz paket. `expo-linking` ve
+`react-native-gesture-handler` **artık kullanılıyor** (LegalLinks, kaydırmalı
+satırlar) — liste yeniden doğrulanmalı, `npx expo-doctor` ile.
+
+**14. P5-1 · Mobil tarafta test yok.** Kural testleri 175'e çıktı ama
+istemcide birim/bileşen testi hiç yok. `splitAmount`, `ageFrom`,
+`parseBirthDate`, `computeFreeSlots` gibi saf fonksiyonlar en ucuz başlangıç.
+
+**15. P4-7 · i18n.** Tüm metinler koda gömülü. İhracat düşünülene kadar
+gerekmiyor; sıranın sonunda olmasının sebebi bu.
+
+**16. Üye profil fotoğrafı.** Storage yükleme akışı. MEMBER-5a'da ad/telefon/
+doğum tarihi yapıldı, fotoğraf kaldı.
+
+---
+
 ## P0 — Yayın engelleyiciler
 
 ### [x] P0-0 · Salon kodu hiçbir yerde görünmüyor — üye alma akışı kopuk ⚠️
@@ -1656,8 +1736,10 @@ Takvim + Profil sekmeleri aynı anda mount olduğu için üye listesi tek başı
 - [x] Gizlilik politikası URL'i
 - [x] Açıklama, anahtar kelimeler, destek/pazarlama URL'i
 - [ ] **Ekran görüntüleri** — 6.5" (1284×2778) seti hazırlanıyor
-- [ ] **Hesap silme akışı** (P0-2) — bu olmadan kesin ret
-- [ ] Uygulama içi gizlilik/şartlar bağlantısı (P0-4)
+- [x] **Hesap silme akışı** (P0-2) — uygulama içi `DeleteAccountButton` üç rol
+      ekranında da var, `deleteMyAccount` callable canlıda, web sayfası yayında
+- [x] Uygulama içi gizlilik/şartlar bağlantısı (P0-4) — `LegalLinks`, üç rol
+      ekranında
 - [ ] Yaş sınırı (age rating) anketi
 - [ ] Demo hesap bilgileri — inceleme ekibi giriş yapabilmeli; salon kodu ve
       onaylı bir test üyesi App Review Notes'a yazılmalı (**kritik**: onay
