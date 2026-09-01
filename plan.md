@@ -54,9 +54,8 @@ hesap (onay bekleyen bir hesapla incelemeci hiçbir şey göremez → kesin ret)
 trendi, yaklaşan paket bitişleri, ödeme yapmayanlar. Panel bugün dört sayı
 gösteriyor; sahibin ikinci sorusuna cevabı yok. ADMIN-5 de buraya katlanıyor.
 
-**6. P4-2 · Antrenör üyenin ilerlemesini göremiyor.** Program yazıyor ama
-üyenin ölçümlerini ve antrenman geçmişini göremiyor. Kurallar zaten izin
-veriyor — **yalnızca ekran eksik**, yani ucuz ve koçluk için temel.
+**6. ~~P4-2 · Antrenör üyenin ilerlemesini göremiyor~~** — madde bayatmış,
+ekran zaten vardı (1 Eylül 2026).
 
 **7. PKG-10 + PKG-11 · Dondurma ve iade politikası.** İkisi aynı soruyu
 soruyor (para/hak geri nasıl döner) ve ayrı ayrı yapılırsa çelişirler.
@@ -72,9 +71,7 @@ dörtten sekize çıktı — susturma yolu olmadan bu artış rahatsız edici ol
 istemci ilk aktif üyeliği alıp gerisini yok sayıyor. İki salona üye olan kişi
 ikincisine hiç erişemiyor.
 
-**10. UX-7 kalanı.** Antrenör takvimi, yönetici paneli ve diğer liste
-ekranları. Hook hazır; her ekranda aboneliğin `retryKey`'e bağlanması
-gerektiği için tek tek.
+**10. ~~UX-7 kalanı~~** — tamamlandı (1 Eylül 2026), on ekran.
 
 **11. PKG-9 · Seri randevu.** "Her cuma 08:00, 8 hafta." Sahibin istediği
 kolaylık, ama tek tek almak bugün çalışıyor — engelleyici değil.
@@ -876,9 +873,11 @@ render'ı azaltır.
 - [x] **P4-1 · Ders rezervasyonu üyeye görünür değil.** → MEMBER-3 ile
       çözüldü (1 Eylül 2026): `member/bookings.tsx`, grup dersi + PT tek
       listede.
-- [ ] **P4-2 · Antrenör üyenin ilerlemesini göremiyor.** Program yazıyor ama
-      üyenin ölçümleri/antrenman geçmişi antrenöre kapalı (kurallar izin
-      veriyor, ekran yok). Koçluk için temel ihtiyaç.
+- [x] **P4-2 · Antrenör üyenin ilerlemesini göremiyor.** **Madde bayatmış**
+      (1 Eylül 2026 kontrolü): `trainer/member.tsx` ölçümleri ve antrenman
+      geçmişini zaten gösteriyor, `trainer/index`'ten erişiliyor. Yeni iş
+      yapılmadı; yalnızca oradaki elle kurulmuş istatistik kartı ADMIN-7
+      sözleşmesine (`StatCard`) alındı.
 - [ ] **P4-3 · Bildirim tercihleri yok.** Push açık/kapalı ayarı, kategori
       bazlı tercih yok. GDPR/KVKK açısından da beklenir.
 - [x] **P4-4 · Üye profil düzenleme yok.** → MEMBER-5a ile çözüldü
@@ -2810,7 +2809,7 @@ tek bir salon varsaymayı bırakması.
 
 ---
 
-### [~] UX-7 · Güncellenebilen ekranlara "aşağı çekerek yenile" eklenmeli
+### [x] UX-7 · Güncellenebilen ekranlara "aşağı çekerek yenile" eklenmeli
 
 **İstek (26 Ağustos 2026, kullanıcı notu):** liste/takvim gösteren ekranlarda
 (Bugün, Dersler, Randevularım, Üyelerim, antrenör Takvim'i vb.) standart iOS
@@ -2829,9 +2828,14 @@ gelirse spinner'ı o hızda gizlemek "hiçbir şey olmadı" gibi okunuyor.
 Eklendiği ekranlar: Bugün (`member/index`), Dersler (`member/classes`),
 Rezervasyonlarım (`member/bookings`), Üyeler (`admin/members`).
 
-**Kalan:** antrenör takvimi, yönetici paneli ve diğer liste ekranları. Aynı
-hook, ekran başına iki satır — ama her birinde aboneliğin `retryKey`'e
-bağlanması gerekiyor, o yüzden toplu değil tek tek yapılmalı.
+**Tamamlandı (1 Eylül 2026):** kalan ekranlar da eklendi — antrenör takvimi,
+yönetici paneli, Bugün girenler, Ekip, Paketler, Gelişim. Toplam on ekran.
+
+Her birinde `retryKey`'in **gerçekten bir aboneliğe bağlı olduğu tek tek
+doğrulandı**. `trainer/calendar` bunu ilk seferde kaçırmıştı: hook eklenmiş
+ama `retryKey` hiçbir `useEffect`'in bağımlılığında değildi, yani jest
+spinner gösterip hiçbir şey yapmayacaktı — kaçınmak istediğim plasebonun
+tam kendisi.
 
 Kapsam: hangi ekranların gireceğine karar verilmeli (muhtemelen tüm
 `ScrollView`/liste ekranları), `RefreshControl` sarmalaması gerekecek. Henüz
