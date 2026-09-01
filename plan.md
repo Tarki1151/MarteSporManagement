@@ -1444,10 +1444,16 @@ alamıyordu** — çocuk kendi iptal etseydi alacaktı. `isGuardian` eklendi.
 Ekranlar: `member/child.tsx` — ebeveynin çocuğun paketini, kalan ders
 hakkını ve yaklaşan randevularını gördüğü, randevu iptal edebildiği ekran.
 
-**Kalan (UI):** ebeveynin çocuk adına **yeni randevu alması** için ekran yok.
-Sunucu desteği hazır (`bookPtSessions` `memberId` alıyor, kurallar ders
-rezervasyonuna izin veriyor) ama randevu alma akışı kendi ekranı; sessizce
-"tamamlandı" demiyorum.
+**Kalan UI da tamamlandı (1 Eylül 2026).** Yeni ekran yazılmadı — mevcut
+randevu alma akışı opsiyonel `memberId`/`memberName` parametresi alıyor ve
+parametre varsa **tamamen çocuk üzerinden** çalışıyor: sayılan kredi
+çocuğunki, gösterilen isim çocuğunki, callable çocuk adına çağrılıyor.
+Ekranda "X adına randevu alıyorsun" satırı var — kredinin düştüğü ekranda
+kimin adına işlem yapıldığını söylemeyen tek başka ipucu yok.
+
+Giriş: çocuk detayında "Bu çocuk için randevu al" → antrenör listesi
+(parametreleri taşıyor) → randevu ekranı. İkinci bir akış kopyalamak yerine
+mevcut olanı parametreleştirmek, ikisinin ileride ayrışmasını da engelliyor.
 
 **[x] MEMBER-5d · Ebeveynin karekodla girişi.** Karar 3 bir *sorgu* ("çocuklarından
 herhangi biri") — kural sorgu çalıştıramaz, yani aynaya gider.
