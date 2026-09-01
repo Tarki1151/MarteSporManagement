@@ -942,7 +942,7 @@ sadece kapanıştan önce başlamak yetmiyor; tavan bu yüzden süreyle birlikte
 kayıyor. Salonun kapalı olduğu gün ders hiç eklenemiyor — düğme kapalı ve
 `submit` de ayrıca kontrol ediyor, düğme tek giriş yolu değil.
 
-### [~] ADMIN-3 · Yöneticiye bildirim gitmiyor ⚠️ **kullanıcı bildirdi**
+### [x] ADMIN-3 · Yöneticiye bildirim gitmiyor ⚠️ **kullanıcı bildirdi**
 
 Beş bildirimin **dördü üyeye**, yalnızca biri yöneticiye gidiyor
 (`notifyAdminsOnMemberLeft`, 27 Ağustos'ta eklendi).
@@ -952,10 +952,10 @@ Salon sahibini ilgilendiren ve **hiç bildirim üretmeyen** olaylar:
 | Olay | Neden önemli |
 |---|---|
 | **Yeni katılım isteği** | Sahibin en zaman-kritik olayı. Şu an ancak uygulamayı açınca görüyor; üye kapıda bekliyor olabilir. **En öncelikli.** |
-| Üye ödeme bildirimi gönderdi | Onay kuyruğuna düşüyor, kimse haberdar değil |
-| Üye paket teklifini yanıtladı | Teklifi yönetici yaptı, cevabı görmüyor |
-| Üye PT randevusunu iptal etti | Antrenörün saati boşaldı |
-| Paket/kredi bitmek üzere | Yenileme satışı kaçıyor |
+| Üye ödeme bildirimi gönderdi | ✅ `notifyAdminsOnPaymentNotice` |
+| Üye paket teklifini yanıtladı | ✅ `notifyAdminsOnPackageChangeResponse` |
+| Üye PT randevusunu iptal etti | ✅ `notifyTrainerOnSessionCancelled` |
+| Paket/kredi bitmek üzere | ✅ `notifyExpiringPackages` |
 
 Altyapı hazır: `sendPushToUser()` var, `notifyAdminsOnMemberLeft` aktif
 yöneticilere fan-out desenini zaten kuruyor — kopyalanacak.
@@ -2717,7 +2717,7 @@ tek bir salon varsaymayı bırakması.
 
 ---
 
-### [ ] UX-7 · Güncellenebilen ekranlara "aşağı çekerek yenile" eklenmeli
+### [~] UX-7 · Güncellenebilen ekranlara "aşağı çekerek yenile" eklenmeli
 
 **İstek (26 Ağustos 2026, kullanıcı notu):** liste/takvim gösteren ekranlarda
 (Bugün, Dersler, Randevularım, Üyelerim, antrenör Takvim'i vb.) standart iOS
@@ -2725,6 +2725,20 @@ pull-to-refresh jesti yok. Bu ekranlar zaten canlı `onSnapshot` dinleyicileriyl
 güncel kalıyor, ama kullanıcı alışkanlığı gereği elle "çekip yenileme" isteği
 mantıklı — özellikle bağlantı kısa süre koptuysa görsel bir "tazelendi" geri
 bildirimi sağlar.
+
+**Kısmen çözüldü (1 Eylül 2026):** `components/useRefreshControl.tsx`.
+Jest **plasebo değil** — aboneliği gerçekten yıkıp yeniden kuruyor
+(`retryKey`), çünkü çevrimdışıyken düşen bir dinleyici her zaman kendiliğinden
+toparlamıyor. Spinner sabit bir süre tutuluyor: yeniden abone olmanın
+beklenecek bir tamamlanma sinyali yok ve ilk snapshot önbellekten 20ms'de
+gelirse spinner'ı o hızda gizlemek "hiçbir şey olmadı" gibi okunuyor.
+
+Eklendiği ekranlar: Bugün (`member/index`), Dersler (`member/classes`),
+Rezervasyonlarım (`member/bookings`), Üyeler (`admin/members`).
+
+**Kalan:** antrenör takvimi, yönetici paneli ve diğer liste ekranları. Aynı
+hook, ekran başına iki satır — ama her birinde aboneliğin `retryKey`'e
+bağlanması gerekiyor, o yüzden toplu değil tek tek yapılmalı.
 
 Kapsam: hangi ekranların gireceğine karar verilmeli (muhtemelen tüm
 `ScrollView`/liste ekranları), `RefreshControl` sarmalaması gerekecek. Henüz
