@@ -969,7 +969,7 @@ kaçırırdı. Fan-out `notifyTenantAdmins` yardımcısına çıkarıldı,
 
 **Kalan:** ödeme bildirimi, paket teklifi yanıtı, PT iptali, paket bitişi.
 
-### ADMIN-4 · Yanlış girilen veri düzeltilemiyor
+### [~] ADMIN-4 · Yanlış girilen veri düzeltilemiyor
 
 - **Ödeme:** `recordPayment` var, düzenleme/silme yok. Kural da
   `delete: if false`. Yanlış tutar girildiyse defterde kalıcı.
@@ -994,6 +994,47 @@ Uygulama notu — derin bağlantı altyapısı zaten var: `sendPushToUser`'ın
 kayda kaydırması/vurgulaması gerekecek — şu an bildirim yalnızca ekranı
 açıyor, belirli bir kayda götürmüyor. Bu eksik **tüm bildirimler için**
 geçerli, ayrıca not edildi.
+
+**Çözüldü — ödeme kısmı (1 Eylül 2026).**
+
+**Ters kayıt deseni seçildi.** Orijinal satır hiç düzenlenmiyor: tutarı,
+yöntemi ve tarihi yöneticinin ilk inandığı şey ve üzerine yazmak bir
+düzeltme yapıldığını tamamen gizler. Yerine aynı tutarda `kind: 'reversal'`
+bir satır yazılıyor, orijinal `reversedAt` ile işaretleniyor ve ekranda
+üstü çizili duruyor. İkisi tek `writeBatch` içinde — işaretsiz bir ters
+kayıt aynı satırın iki kez iptalini mümkün kılar, ters kayıtsız bir işaret
+ise iptal edilmiş görünen ama ciroya sayılmaya devam eden bir ödeme bırakır.
+
+⚠️ **Yol üzerinde bulunan hata:** `PaymentKind` (`'charge' | 'refund'`)
+tipte vardı ama **hiçbir yere yazılmıyordu** ve gelir hesabı onu hiç
+okumuyordu (`sum + p.amount`). Yani bir iade kaydedilse ciro **artardı**.
+Ters kayıtlar bilinçli yazılmaya başlayınca bu gizli hata sahibin ana
+ekranındaki yanlış rakama dönüşecekti. İşaret artık tek bir yerde:
+`utils/revenue.ts` → `sumPayments`.
+
+Kurallar: ters kayıt neyi iptal ettiğini **söylemek zorunda** (yoksa defterde
+karşılığı olmayan negatif bir satır kalır) ve yalnızca yönetici yazabilir
+(üyenin kendi borcunu iptal etmesi olurdu). İşaretleme kuralı yalnızca üç
+alana izin veriyor ve `reversedAt` zaten varsa reddediyor — her iptal
+ciroyu bir kez daha düşürürdü. 7 test, **171/171 geçiyor**.
+
+**Bildirim:** `notifyOnPaymentReversed` hem üyeye hem diğer yöneticilere
+gidiyor, gerekçeyle birlikte. Düzeltmeyi yapan yönetici hariç tutuluyor —
+insana yaptığı şeyi haber veren bildirim, okunmadan kapatılmayı öğreten
+bildirimdir. `notifyTenantAdmins` bunun için `exceptUserId` aldı.
+
+⚠️ **Planın varsayımı yanlıştı:** "bildirime basınca ekran açılıyor ama
+kayda gitmiyor" yazıyordu. Gerçekte **hiçbir dokunma dinleyicisi yoktu** —
+bildirime basmak uygulamayı açıyor, başka hiçbir şey yapmıyordu.
+`PushNotificationSync` artık `addNotificationResponseReceivedListener` ve
+soğuk açılış için `getLastNotificationResponseAsync` kuruyor,
+`data.screen`'e yönlendiriyor ve `paymentId`'yi `highlight` parametresi
+olarak taşıyor. Hedef ekran o satırı çerçeveliyor. **Bu tüm bildirimler
+için altyapı** — derin bağlantı maddesi böylece kapandı.
+
+**Kalan:** paket ataması geri alınamıyor (`member_packages` `update: false`,
+`delete: false`). Ters kayıt deseni orada da uygulanabilir ama krediyi de
+geri alması gerektiği için callable işi — ayrı madde.
 
 ### ADMIN-6 · Ödeme eklerken üye seçimi kullanılamaz halde ⚠️ **kullanıcı bildirdi**
 
