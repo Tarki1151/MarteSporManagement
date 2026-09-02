@@ -3913,6 +3913,12 @@ eksik ekran); algısal bulgular (yavaşlık, okunabilirlik) bu turda yok.
 - Hareket görselleştirici (PER-19): kas haritası **46 kanonik harekete**,
   poz kareleri de aynı 46'ya; üyeye antrenman sırasında açık; PER-18 ile
   aynı iş sayılıyor.
+- **Yönetici her zaman antrenördür** (2 Eylül 2026): `canCoach` admin rolünde
+  de `true`. Küçük salonda sahip aynı zamanda çalıştırıyor; sahibin üyeye
+  program yazamaması savunulabilir değildi. Yetenek ile yüzey ayrı tutuldu —
+  yönetici antrenör sekme çubuğu almaz, `admin/builder` gibi kendi route'unda
+  ekranı görür. Kural olarak `AGENTS.md` §4b'ye yazıldı; `membership.test.ts`
+  koruyor.
 
 Raporun plan.md'yle çelişen iki bulgusu bağlamla düzeltildi: kotalı grup
 dersi "satılan özellik çalışmıyor" değil, PKG-4'ün bilinçli sınırıydı
