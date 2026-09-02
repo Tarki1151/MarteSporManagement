@@ -11,7 +11,68 @@
 - **İlerleme kuralı ("2-for-2", NSCA):** bir egzersizde **iki seans üst üste** her sette hedef tekrarın **2 fazlasını** yapabiliyorsan ağırlığı artır — üst vücutta ~2,5 kg, alt vücutta ~5 kg (~%5).
 - **Ağırlık alanı boş (`null`)** gelir: antrenör ilk seansta belirler. Şablon "kaç kilo" söylemez, "kaç tekrar, kaç dinlenme, nasıl ilerle" söyler.
 - **Isınma** her programın önüne otomatik gelir (`warmup` alanı); antrenör kapatabilir.
+- **Tempo (aksi yazılmadıkça):** 2 sn kontrollü iniş, kısa duraklama, 1 sn kaldırış. Hızlı iniş = teknik hatası.
+- **RIR (reps in reserve):** "RIR 1–2" = seti bitirdiğinde 1–2 tekrar daha yapabilecek hissi. Başlangıç şablonlarında RIR 3 hedeflenir; ilk 4 hafta kimse tükenişe gitmez.
+- **İlk seans protokolü:** her egzersizde antrenör hareketi gösterir, üye 1 set hafif yapar, antrenör ağırlığı belirler ve kaydeder. İlk seansta tam hacim yapılmaz.
+- **Eşdeğer hareketler (alet doluysa / ekipman yoksa):** aynı hareket kalıbında değiştir, egzersizi atlama —
+
+  | Kalıp | Seçenekler |
+  |---|---|
+  | Squat | goblet squat · leg press · hack squat · back/front squat |
+  | Kalça menteşesi (hinge) | kettlebell deadlift · RDL · hip thrust · trap bar deadlift |
+  | Yatay itiş | makine göğüs pres · dumbbell pres · bench press · şınav |
+  | Yatay çekiş | oturarak kürek · tek kol dumbbell row · chest-supported row · barbell row |
+  | Dikey itiş | makine omuz pres · dumbbell omuz pres · overhead press |
+  | Dikey çekiş | lat pulldown · bant destekli barfiks · barfiks |
+  | Tek bacak | split squat · reverse lunge · step-up · Bulgarian split squat |
+  | Core | plank · ölü böcek · Pallof pres · side plank · bird-dog |
+
 - **İsimlendirme dürüst:** "karın inceltme" yok (bölgesel yağ kaybı için kanıt yok — Vispute 2011, Kostek 2007), "postür düzeltme" yok (kanıt karışık). Bunların yerine *core güçlendirme* ve *sırt-omuz güçlendirme* var; iddia sadece kanıtı olan şey.
+
+## Antrenör personası incelemesi (2 Eylül 2026)
+
+Gerçek antrenör onayı yerine ilk sürüm, antrenör personası (Deniz — 8 yıl salon,
+NSCA-CPT) gözüyle incelendi. Yapılan değişiklikler ve reddedilenler:
+
+**Değiştirildi**
+- **Kısa ısınma eklendi** (`warmup-short`, 4 dk): 15–20 dakikalık core ve
+  sırt-omuz bloklarının önüne 9 dakikalık genel ısınma koymak programın
+  yarısı kadar sürüyordu.
+- **Başlangıçta RDL → önce kettlebell deadlift:** hinge öğrenilmeden RDL bel
+  ağrısının bir numaralı sebebi. 5. haftadan RDL, antrenör hinge'i onaylayınca.
+- **Başlangıçta Bulgarian split squat → reverse lunge (destekli):** denge
+  talebi yeni üyeyi düşürüyor, literal anlamda.
+- **Alt/Üst Orta: ağır squat ve ağır deadlift ayrı günlere:** aynı seansta
+  4×5 squat + 3×4 deadlift + 4 dk dinlenmeler salon üyesi için hem 90 dk
+  hem gereksiz omurga yükü. Deadlift hipertrofi gününe, RDL güç gününe.
+- **Tam Vücut Orta süresi 60 → 70 dk:** üç ana hareket × 3 dk dinlenme
+  60'a sığmıyordu; row dinlenmesi 2 dk'ya indi.
+- **Yağ Kaybı Başlangıç 5 gün → 3 gün + opsiyonel kardiyo:** yeni üyenin
+  haftada 5 gün salona gelmesi gerçekçi değil; ilk şikâyet "programa
+  yetişemiyorum" olurdu. Kardiyo salon dışında yürüyüş olarak da sayılır.
+- **HIIT için "hekim onayı" → PAR-Q+ taraması:** her üyeyi hekime
+  göndermek uygulanmaz; PAR-Q+ standart tarama, "evet" varsa hekim.
+- **Eşdeğer hareketler tablosu eklendi:** kalabalık saatte alet doluysa
+  antrenörün elinde hazır alternatif olsun; üye egzersizi atlamasın.
+- **Tempo, RIR ve ilk seans protokolü** "Nasıl okunmalı"ya eklendi —
+  şablon bunları söylemeyince her antrenör farklı uyguluyor.
+- **"Dünyanın en iyi germesi" → "Lunge + gövde rotasyonu":** kimse o
+  isimle bilmiyor.
+
+**Bilerek reddedildi**
+- **Upright row** sırt-omuz şablonuna alınmadı — Andersen protokolünde var,
+  ama omuz sıkışması (impingement) riski salon pratiğinde yaygın; reverse
+  fly ve face pull aynı işi görüyor.
+- **Mekik ve düz bacak kaldırma** core şablonlarına alınmadı — bel disk
+  yükü yüksek, başlangıç üyesinde gereksiz.
+- **Kadın/erkek ayrı şablon** yapılmadı — hareket seçimi cinsiyete göre
+  değişmez; farklılık ağırlık ve hedefte, o da antrenörün kopyada yaptığı
+  düzenleme.
+- **Egzersiz görseli** hâlâ yok — telif; PER-18'in "görsel sonra" kararı.
+
+**Gerçek antrenör onayı yine de önerilir** — özellikle ekipman listesi
+(Tarabya'da trap bar, ab wheel, chest-supported row makinesi var mı?) ve
+Türkçe hareket adlarının salonda kullanılan karşılıkları için.
 
 ## Şablon listesi
 
@@ -20,11 +81,12 @@
 | `warmup-general` | Isınma — Genel (RAMP) | all | — | 9 dk |
 | `warmup-lower` | Isınma — Alt vücut günü | all | — | 10 dk |
 | `warmup-upper` | Isınma — Üst vücut günü | all | — | 9 dk |
+| `warmup-short` | Isınma — Kısa (4 dk) | all | — | 4 dk |
 | `fullbody-beginner` | Tam Vücut Başlangıç — A/B | beginner | 3 gün (A-B-A, sonra B-A-B), aralarda en az 1 gün dinlenme | 45 dk |
-| `fullbody-intermediate` | Tam Vücut Orta — A/B/C | intermediate | 3 gün (Pzt-Çar-Cum) | 60 dk |
+| `fullbody-intermediate` | Tam Vücut Orta — A/B/C | intermediate | 3 gün (Pzt-Çar-Cum) | 70 dk |
 | `upperlower-beginner` | Alt/Üst Split Başlangıç — 4 gün | beginner | 4 gün (Üst-Alt-dinlenme-Üst-Alt-dinlenme-dinlenme) | 50 dk |
 | `upperlower-intermediate` | Alt/Üst Split Orta — 4 gün, güç + hipertrofi | intermediate | 4 gün | 65 dk |
-| `fatloss-beginner` | Yağ Kaybı Başlangıç — direnç + tempolu kardiyo | beginner | 5 gün: 3 direnç (A-B-A) + 2 kardiyo; ayrıca günlük yürüyüş | 50 dk |
+| `fatloss-beginner` | Yağ Kaybı Başlangıç — direnç + tempolu kardiyo | beginner | 3 gün direnç (A-B-A) — kardiyo günleri OPSİYONEL (salon dışında yürüyüş de sayılır); ayrıca günlük adım | 50 dk |
 | `fatloss-intermediate` | Yağ Kaybı Orta — direnç + aralıklı (HIIT) | intermediate | 5 gün: 3 direnç + 2 HIIT (direnç günlerinden ayrı günlerde) | 55 dk |
 | `core-beginner` | Core Güçlendirme Başlangıç — McGill 3'lüsü | beginner | Haftada 3–4 gün; ana antrenmanın sonuna veya ayrı güne | 15 dk |
 | `core-intermediate` | Core Güçlendirme Orta — yüklü anti-rotasyon | intermediate | Haftada 3 gün | 20 dk |
@@ -47,7 +109,7 @@ Her antrenmanın önüne gelen 8–10 dakikalık genel ısınma. RAMP: Raise (na
 | Kol çevirme (öne / arkaya) | 1×10 | — | Her yöne 10. Omuzları kulaktan uzak tut. |
 | Kalça köprüsü (glute bridge) | 1×12 | — | Üstte kalçayı 1 sn sık; beli kavis yapma. |
 | Kedi-deve (cat-cow) | 1×10 | — | Nefesle: nefes al – kavis, ver – yuvarla. |
-| Dünyanın en iyi germesi (world's greatest stretch) | 1×5 | — | Her tarafa 5. Ön diz 90°, göğsü tavana aç. |
+| Lunge + gövde rotasyonu (world's greatest stretch) | 1×5 | — | Her tarafa 5. Ön diz 90°, dirseği yere, sonra göğsü tavana aç. |
 | Vücut ağırlığıyla squat | 1×10 | — | Topuk yerde, dizler ayak ucu yönünde. |
 | Bant ile omuz dış rotasyon (yoksa boş elle) | 1×12 | — | Dirsek gövdeye yapışık, yavaş. |
 | Ana hareketin hafif ilk seti | 1×8 | 60 sn | Günün ilk egzersizini çalışma ağırlığının ~%50'siyle 8 tekrar. |
@@ -110,6 +172,28 @@ Bench / omuz / sırt günleri için. Omuz kuşağı, torasik omurga ve rotator m
 
 ---
 
+## Isınma — Kısa (4 dk)
+
+`warmup-short` · seviye **all** · ısınma bloğu · ~4 dk · ekipman: yok · ısınma: `—`
+
+15–20 dakikalık core ve sırt-omuz blokları için. 9 dakikalık genel ısınma bu programların yarısı kadar sürer; burada yalnızca nabız + hedef bölge aktivasyonu.
+
+### Isınma
+
+| Egzersiz | Doz | Dinlenme | İpucu |
+|---|---|---|---|
+| Yerinde yürüyüş / hafif zıplama | 1 dk | — | 1 dk. |
+| Kol çevirme + kedi-deve | 1×8 | — | Her biri 8. |
+| Kalça köprüsü | 1×10 | — |  |
+| Bant pull-apart (veya boş elle kürek kemiği sıkma) | 1×12 | — |  |
+| Ölü böcek | 1×6 | — | Her tarafa 6 — core'u uyandır. |
+
+**İlerleme:** Sabit.
+
+**Kaynaklar:** Jeffreys I (2007)
+
+---
+
 ## Tam Vücut Başlangıç — A/B
 
 `fullbody-beginner` · seviye **beginner** · 3 gün (A-B-A, sonra B-A-B), aralarda en az 1 gün dinlenme · ~45 dk · ekipman: makine, dumbbell, bar · ısınma: `warmup-general`
@@ -123,7 +207,7 @@ Bench / omuz / sırt günleri için. Omuz kuşağı, torasik omurga ve rotator m
 | Goblet squat | 3×10 | 90 sn | Dumbbell göğüste, dirsekler dizlerin içinden. Topuk yerde. |
 | Göğüs pres (makine veya dumbbell) | 3×10 | 90 sn | Kürek kemikleri sıkı, bilekler dirseğin üstünde. |
 | Lat pulldown | 3×10 | 90 sn | Barı göğsün üstüne çek, dirsekler aşağı-geri. |
-| Romanian deadlift (dumbbell) | 3×10 | 90 sn | Kalçayı geri it, sırt düz, bar bacağa yakın. |
+| Kettlebell deadlift (1–4. hafta) → Romanian deadlift (5. haftadan) | 3×10 | 90 sn | Önce kalça menteşesi (hinge) öğrenilir: kalçayı geri it, sırt düz. Antrenör hinge'i onaylamadan RDL'ye geçme. |
 | Plank | 3×30 sn | 45 sn | Kalça ne yukarı ne aşağı; karnı sık, nefes al. |
 
 ### B günü
@@ -133,7 +217,7 @@ Bench / omuz / sırt günleri için. Omuz kuşağı, torasik omurga ve rotator m
 | Leg press | 3×10 | 90 sn | Ayaklar omuz genişliği, dizler ayak ucu yönünde. Dizi kilitleme. |
 | Omuz pres (makine veya dumbbell) | 3×10 | 90 sn | Beli kavis yapma; karnı sık. |
 | Oturarak kürek (seated row) | 3×10 | 90 sn | Göğsü aç, dirsekler gövdeye yakın, omuz kulaktan uzak. |
-| Bulgarian split squat / lunge | 2×8 | 90 sn | Her bacak 8. Ön diz topuğun üstünde. |
+| Reverse lunge (geriye adım) — destekle | 2×8 | 90 sn | Her bacak 8. Denge için bir el makineye tutunabilir. Bulgarian split squat başlangıç için değil. |
 | Ölü böcek (dead bug) | 3×8 | 45 sn | Her tarafa 8. Bel yere yapışık kalsın. |
 
 **İlerleme:** Haftalık: bir egzersizde 2 seans üst üste her sette hedef tekrarı (10) tamamlayabildiysen ağırlığı bir sonraki seansta %5 (üst vücut ~2,5 kg, alt vücut ~5 kg) artır — '2-for-2' kuralı (NSCA). 1–4. hafta 2 set, 5. haftadan itibaren 3 set.
@@ -148,7 +232,7 @@ Bench / omuz / sırt günleri için. Omuz kuşağı, torasik omurga ve rotator m
 
 ## Tam Vücut Orta — A/B/C
 
-`fullbody-intermediate` · seviye **intermediate** · 3 gün (Pzt-Çar-Cum) · ~60 dk · ekipman: bar, dumbbell, makine, kablo · ısınma: `warmup-general`
+`fullbody-intermediate` · seviye **intermediate** · 3 gün (Pzt-Çar-Cum) · ~70 dk · ekipman: bar, dumbbell, makine, kablo · ısınma: `warmup-general`
 
 En az 6 ay düzenli çalışmış üye için. Haftada kas grubu başına 10+ set (Schoenfeld 2017), her kas grubu haftada 2–3 kez (Schoenfeld 2016). Üç günün her biri farklı ana hareketle başlar; ağır (5), orta (8), hafif-hacim (12) günleri.
 
@@ -158,7 +242,7 @@ En az 6 ay düzenli çalışmış üye için. Haftada kas grubu başına 10+ set
 |---|---|---|---|
 | Back squat | 4×5 | 180 sn | Çalışma ağırlığı: 5 tekrarı 1–2 tekrar yedekle bitir (RIR 1–2). |
 | Bench press | 4×5 | 180 sn | Ayaklar yere basılı, kürek kemikleri sıkı. |
-| Barbell row | 3×6 | 150 sn | Gövde ~45°, barı karın altına. |
+| Barbell row | 3×6 | 120 sn | Gövde ~45°, barı karın altına. |
 | Yüz çekişi (face pull) | 3×15 | 60 sn | Dirsekler yukarı-geri, omuz sağlığı için. |
 | Asılı bacak kaldırma / diz çekme | 3×10 | 60 sn | Sallanma; kontrollü indir. |
 
@@ -269,7 +353,7 @@ Haftanın ilk yarısı güç (4–6 tekrar, uzun dinlenme), ikinci yarısı hipe
 | Egzersiz | Doz | Dinlenme | İpucu |
 |---|---|---|---|
 | Back squat | 4×5 | 180 sn | RIR 1–2. |
-| Deadlift (konvansiyonel veya trap bar) | 3×4 | 240 sn | Tekniği bozan tekrarda dur. Haftada 1 kez yeter. |
+| Romanian deadlift (bar) | 3×8 | 150 sn | Ağır çekiş bu gün değil — squat'ın omurga yükü yeter. |
 | Leg press | 3×8 | 120 sn |  |
 | Asılı bacak kaldırma | 3×10 | 60 sn |  |
 
@@ -288,8 +372,8 @@ Haftanın ilk yarısı güç (4–6 tekrar, uzun dinlenme), ikinci yarısı hipe
 
 | Egzersiz | Doz | Dinlenme | İpucu |
 |---|---|---|---|
-| Front squat veya hack squat | 3×8 | 120 sn |  |
-| Romanian deadlift | 3×10 | 120 sn |  |
+| Deadlift (trap bar tercih)  | 3×6 | 240 sn | Haftanın tek ağır çekişi. Tekniği bozan tekrarda dur. |
+| Hack squat veya front squat | 3×10 | 120 sn |  |
 | Walking lunge | 3×12 | 90 sn | Her bacak 12. |
 | Leg curl | 3×12 | 75 sn |  |
 | Calf raise | 4×12 | 60 sn |  |
@@ -298,7 +382,7 @@ Haftanın ilk yarısı güç (4–6 tekrar, uzun dinlenme), ikinci yarısı hipe
 **İlerleme:** Güç günleri: 4×5 tamamlanınca +2,5/5 kg. Hipertrofi günleri: tekrar aralığının üstüne çık, sonra ağırlık. 4 hafta yükle + 1 hafta deload.
 
 **Notlar:**
-- Deadlift ve squat aynı hafta ağır olduğu için Alt-Güç gününden sonra 48 saat bacak çalışma.
+- Ağır squat ve ağır deadlift bilerek ayrı günlerde — aynı seansta iki ağır omurga yükü salon üyesi için gereksiz risk. İki alt gün arasında en az 72 saat.
 - Bu şablon 6+ ay düzenli antrenman ve doğru squat/deadlift tekniği varsayar — antrenör teknik onayı vermeden atama.
 
 **Kaynaklar:** ACSM (2009) (2009); Schoenfeld BJ, Ogborn D, Krieger JW (2017) (2017); Schoenfeld BJ et al (2016); Haff GG, Triplett NT (eds.) (2016) (eds.)
@@ -307,7 +391,7 @@ Haftanın ilk yarısı güç (4–6 tekrar, uzun dinlenme), ikinci yarısı hipe
 
 ## Yağ Kaybı Başlangıç — direnç + tempolu kardiyo
 
-`fatloss-beginner` · seviye **beginner** · 5 gün: 3 direnç (A-B-A) + 2 kardiyo; ayrıca günlük yürüyüş · ~50 dk · ekipman: makine, dumbbell, kardiyo aleti · ısınma: `warmup-general`
+`fatloss-beginner` · seviye **beginner** · 3 gün direnç (A-B-A) — kardiyo günleri OPSİYONEL (salon dışında yürüyüş de sayılır); ayrıca günlük adım · ~50 dk · ekipman: makine, dumbbell, kardiyo aleti · ısınma: `warmup-general`
 
 Yağ kaybı diyetle başlar; antrenman kas kütlesini korur ve kalori açığına katkı verir. Direnç antrenmanı + aerobik kombinasyonu yalnız birinden üstün (Willis 2012). Anlamlı kilo kaybı için haftalık ≥250 dk orta yoğunluk hedefi (Donnelly 2009) — bu şablon 150 dk ile başlar, yürüyüşle 250'ye çıkarılır.
 
@@ -333,15 +417,16 @@ Yağ kaybı diyetle başlar; antrenman kas kütlesini korur ve kalori açığın
 | Ölü böcek | 3×10 | 30 sn |  |
 | Bitiş: yürüyüş bandı eğimli | 10 dk | — | 10 dk, eğim %5–8, hız yürüyüş. |
 
-### Kardiyo günü (×2)
+### Kardiyo günü (opsiyonel, ×2)
 
 | Egzersiz | Doz | Dinlenme | İpucu |
 |---|---|---|---|
-| Tempolu kardiyo (bisiklet / eliptik / yürüyüş bandı) | 30 dk | — | 30 dk. Konuşabiliyor ama şarkı söyleyemiyorsun — orta yoğunluk (RPE 5–6/10). |
+| Tempolu kardiyo (bisiklet / eliptik / yürüyüş bandı / dışarıda tempolu yürüyüş) | 30 dk | — | 30 dk. Konuşabiliyor ama şarkı söyleyemiyorsun — orta yoğunluk (RPE 5–6/10). Salona gelmek şart değil. |
 
 **İlerleme:** Her 2 haftada kardiyo süresine +5 dk (30→45). Direnç: 12 tekrar rahatlayınca ağırlık +%5. Günlük adım hedefi: 6.000 → 10.000'e 4 haftada.
 
 **Notlar:**
+- Yeni üyenin haftada 5 gün salona gelmesi gerçekçi değil; önce 3 direnç gününü 4 hafta aksatmadan getir, kardiyo günlerini sonra ekle.
 - Karın egzersizi karın yağını yakmaz (Vispute 2011) — mekik sayısını değil kalori açığını artır.
 - Haftalık kilo hedefi vücut ağırlığının %0,5–1'i; daha hızlısı kas kaybettirir.
 - Beslenme bu şablonun kapsamı dışında — diyetisyen yönlendirmesi antrenörün işi.
@@ -354,7 +439,7 @@ Yağ kaybı diyetle başlar; antrenman kas kütlesini korur ve kalori açığın
 
 `fatloss-intermediate` · seviye **intermediate** · 5 gün: 3 direnç + 2 HIIT (direnç günlerinden ayrı günlerde) · ~55 dk · ekipman: bar, dumbbell, makine, kardiyo aleti · ısınma: `warmup-general`
 
-En az 6 ay direnç antrenmanı geçmişi olan, kalp-damar riski bilinmeyen üyeye HIIT eklenmez — önce hekim onayı. HIIT ile orta yoğunluklu sürekli kardiyo vücut kompozisyonunda benzer sonuç verir, HIIT %40 daha az sürede (Wewege 2017). Direnç hacmi korunur; kalori açığında kası koruyan şey budur.
+En az 6 ay direnç antrenmanı geçmişi olan üye için. HIIT öncesi PAR-Q+ taraması; herhangi bir 'evet' cevabında hekim onayı olmadan HIIT eklenmez, orta yoğunluklu kardiyo verilir. HIIT ile orta yoğunluklu sürekli kardiyo vücut kompozisyonunda benzer sonuç verir, HIIT %40 daha az sürede (Wewege 2017). Direnç hacmi korunur; kalori açığında kası koruyan şey budur.
 
 ### Direnç A — Alt ağırlıklı
 
@@ -397,13 +482,13 @@ En az 6 ay direnç antrenmanı geçmişi olan, kalp-damar riski bilinmeyen üyey
 - Eklem ağrısı veya baş dönmesinde HIIT'i orta yoğunluklu 30 dk kardiyoya çevir; sonuç aynı, sadece süre uzar.
 - Kilo kaybı 2 hafta durursa önce beslenmeyi, sonra günlük adımı kontrol et — antrenman hacmini artırmadan.
 
-**Kaynaklar:** Wewege M et al (2017); Willis LH et al (2012); Donnelly JE et al (2009); Schoenfeld BJ, Ogborn D, Krieger JW (2017) (2017); Garber CE et al (2011)
+**Kaynaklar:** Wewege M et al (2017); Willis LH et al (2012); Donnelly JE et al (2009); Schoenfeld BJ, Ogborn D, Krieger JW (2017) (2017); Garber CE et al (2011); Warburton DER et al (2011)
 
 ---
 
 ## Core Güçlendirme Başlangıç — McGill 3'lüsü
 
-`core-beginner` · seviye **beginner** · Haftada 3–4 gün; ana antrenmanın sonuna veya ayrı güne · ~15 dk · ekipman: mat · ısınma: `—`
+`core-beginner` · seviye **beginner** · Haftada 3–4 gün; ana antrenmanın sonuna veya ayrı güne · ~15 dk · ekipman: mat · ısınma: `warmup-short`
 
 Gövde stabilitesi: omurgayı hareket ettirmeden yüke direnmek (anti-ekstansiyon, anti-lateral fleksiyon, anti-rotasyon). McGill'in 'Big 3'ü bel yükünü düşük tutarak dayanıklılık kurar. Bu bir karın 'inceltme' programı DEĞİLDİR — bölgesel yağ kaybı yoktur.
 
@@ -429,7 +514,7 @@ Gövde stabilitesi: omurgayı hareket ettirmeden yüke direnmek (anti-ekstansiyo
 
 ## Core Güçlendirme Orta — yüklü anti-rotasyon
 
-`core-intermediate` · seviye **intermediate** · Haftada 3 gün · ~20 dk · ekipman: kablo/bant, kettlebell, tekerlek (ab wheel), mat · ısınma: `—`
+`core-intermediate` · seviye **intermediate** · Haftada 3 gün · ~20 dk · ekipman: kablo/bant, kettlebell, tekerlek (ab wheel), mat · ısınma: `warmup-short`
 
 Başlangıcı bitirmiş üye için: yüklü anti-rotasyon ve anti-ekstansiyon, tek taraflı taşıma. Sporun ve ağır squat/deadlift'in gövde talebi bu.
 
@@ -455,7 +540,7 @@ Başlangıcı bitirmiş üye için: yüklü anti-rotasyon ve anti-ekstansiyon, t
 
 ## Sırt ve Omuz Güçlendirme — Masa Başı Çalışanlar, Başlangıç
 
-`desk-beginner` · seviye **beginner** · Haftada 3 gün × 20 dk (Andersen 2008 protokolü) · ~20 dk · ekipman: dumbbell, direnç bandı · ısınma: `warmup-upper`
+`desk-beginner` · seviye **beginner** · Haftada 3 gün × 20 dk (Andersen 2008 protokolü) · ~20 dk · ekipman: dumbbell, direnç bandı · ısınma: `warmup-short`
 
 Boyun-omuz ağrısı olan ofis çalışanlarında haftada 3×20 dk spesifik güç antrenmanı ağrıyı anlamlı azalttı (Andersen 2008); günlük 2 dk bile fayda gösterdi (Andersen 2011). Bu şablon 'postürü düzeltmez' — üst sırt ve omuz kuşağını güçlendirir, bu da masa başında yorulmayı geciktirir. Kanıt olan iddia budur.
 
@@ -527,4 +612,5 @@ Başlangıç protokolünü 8 hafta tamamlamış üye için: çekiş hacmi itiş 
 - **donnelly** — Donnelly JE et al. (2009). ACSM Position Stand: Appropriate physical activity intervention strategies for weight loss and prevention of weight regain. Med Sci Sports Exerc, 41(2), 459–471. (Anlamlı kilo kaybı için ≥250 dk/hafta.)
 - **willis** — Willis LH et al. (2012). Effects of aerobic and/or resistance training on body mass and fat mass in overweight or obese adults. J Appl Physiol, 113(12), 1831–1837.
 - **wewege** — Wewege M et al. (2017). The effects of HIIT vs. moderate-intensity continuous training on body composition in overweight and obese adults: a systematic review and meta-analysis. Obes Rev, 18(6), 635–646.
+- **parq** — Warburton DER et al. (2011). The Physical Activity Readiness Questionnaire for Everyone (PAR-Q+). Health & Fitness Journal of Canada, 4(2), 3–23.
 - **behm** — Behm DG et al. (2016). Acute effects of muscle stretching on physical performance, range of motion, and injury incidence in healthy active individuals: a systematic review. Appl Physiol Nutr Metab, 41(1), 1–11. (Isınmada uzun statik germe performansı düşürür; dinamik tercih edilir.)

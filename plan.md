@@ -219,10 +219,13 @@ ipucu ile başlanır (telif), görsel sonra.
 *İçerik üretildi (2 Eylül 2026):* `program_templates.md` (13 şablon, 141
 egzersiz, kaynakçalı) + `marte06/scripts/program_templates.seed.json` +
 `marte06/scripts/seed_program_templates.cjs` (dry-run / `--apply`,
-idempotent). 3 ısınma (genel, alt, üst) + 5 başlık × 2 seviye. Seed,
-PER-17 model değişikliği ve `SCHEMA.md`'ye `program_templates` bölümü
-eklenmeden **çalıştırılmaz**. **Antrenör onayı bekliyor** — Tarabya
-antrenörü belgeyi gözden geçirmeden üretime alınmaz.
+idempotent). 4 ısınma (genel, kısa, alt, üst) + 5 başlık × 2 seviye = 14
+şablon. Seed, PER-17 model değişikliği ve `SCHEMA.md`'ye `program_templates`
+bölümü eklenmeden **çalıştırılmaz**. *Karar (kullanıcı, 2 Eylül 2026):
+gerçek antrenör onayı beklenmedi;* antrenör personası incelemesi yapıldı,
+9 değişiklik uygulandı, 4 öneri gerekçesiyle reddedildi — belgenin
+"Antrenör personası incelemesi" bölümü. Gerçek antrenör onayı ekipman
+listesi ve Türkçe hareket adları için hâlâ önerilir.
 
 **14. ~~UX-7 kalanı~~** — tamamlandı (1 Eylül 2026), on ekran.
 
