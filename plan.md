@@ -147,6 +147,15 @@ antrenör oluşturmasını da callable'a taşı (`consumeCredit: false` bayrağ�
 
 ### Kuşak 2 — salon sahibinin ve antrenörün günlük soruları
 
+*Durum (3 Eylül 2026):* **5a, 5b, 5c ve 7a tamamlandı**, 6 kısmen. Kalan:
+**5 (raporlama)** ve **7 (dondurma/iade)**.
+
+*Sıra değişikliği ve gerekçesi:* ders kümesi (PER-8 → PER-9 → PER-10)
+raporlamanın önüne alındı. Üçü de `ClassSession`'a dokunuyor — ayrı ayrı
+yapılsa üç şema göçü, üç kural turu, üç deploy olurdu. Ayrıca raporlamanın
+istediği **katılım oranı** PER-8'in eklediği `attendance` verisine bağlı;
+önce raporlama yapılsaydı o kart eksik doğardı.
+
 **5. P4-5 + PKG-12 · Raporlama.** Aylık gelir, katılım oranı, aktif üye
 trendi, yaklaşan paket bitişleri, ödeme yapmayanlar. Panel bugün dört sayı
 gösteriyor; sahibin ikinci sorusuna cevabı yok. ADMIN-5 de buraya katlanıyor.
