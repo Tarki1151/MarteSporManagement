@@ -769,7 +769,10 @@ silme de kapalı. Yalnızca ekleme, yalnızca **kiracı personeli**
 içeriğimiz, salonun verisi değil. Bir rapor geliştiriciye giden mesajdır;
 salonun yöneteceği bir şey olmadığı için besleyecek bir gelen kutusu ekranı
 da yok. Ayrıca başka bir salonu adıyla anan raporun o salonda görünmesinin
-bir anlamı yok. Okuma Firebase konsolundan ya da Admin SDK ile yapılır.
+bir anlamı yok. Okuma Firebase konsolundan ya da Admin SDK ile yapılır — ayrıca
+`emailExerciseReport` her yeni raporu Resend üzerinden e-posta olarak
+iletir. E-posta **teslimat**tır, kayıt değil: gönderim başarısız olsa da
+doküman durur.
 
 **Neden yalnızca personel:** bir pozun hareketi yanlış anlatıp anlatmadığı
 antrenörlük kararı; ayrıca her oturum açmış kullanıcıya yazma açmak burayı
@@ -797,6 +800,7 @@ ve `payments` için ikinci (legacy) match bloğu.
 | `notifyOnMembershipApproved` | `tenant_memberships` update | Üyelik onaylandı push'u |
 | `notifyOnPaymentStatusChange` | `payments` update | Ödeme onay/ret push'u |
 | `notifyOnProgramAssigned` | `programs` update | Program atandı push'u |
+| `emailExerciseReport` | `exercise_reports` create | Raporu Resend ile e-posta olarak iletir (PER-19). Anahtar yoksa loglar ve geçer — rapor zaten kayıtlı. |
 | `syncPackageAssignmentCount` | `member_packages` yazım | `gym_packages.activeAssignmentCount` senkronu (PKG-1 kilidinin dayanağı) |
 | `creditRollover` | zamanlanmış (günlük, 24 saat) | Süresi dolan her krediyi expired yapar; entitlement kaynaklıları bir sonraki döneme yuvarlar, tek transaction'da (PKG-2, eski adı renewEntitlementCredits) |
 | `notifyOnPackageChangeRequested` | `package_change_requests` create | Üyeye "paket teklifin var" push'u (PKG-6) |

@@ -248,6 +248,17 @@ bildirim düğmesi spam hedefi.
 Bunun asıl değeri: 43 doğrulanmamış pozu tek büyük onay turu beklemek yerine,
 hatayı fark eden kişiden sürekli düzeltme almak.
 
+**E-posta teslimatı (2 Eylül 2026).** İlk hâlinde rapor yalnızca Firestore'a
+yazılıyordu — kimseye haber gitmiyordu ve ekran "geliştiricilere ulaşır"
+diyerek tutamayacağı bir söz veriyordu. `emailExerciseReport` Cloud Function'ı
+(Resend) eklendi; metin de dürüstleştirildi. Fonksiyon bilinçli olarak
+"gönder ve unut": rapor zaten kaydedilmiş oluyor, sağlayıcı çökse bile
+bildirim kaybolmuş sayılmaz.
+
+**Kurulum kaldı (kullanıcı yapacak):** `RESEND_API_KEY` secret'ı, gönderici
+alan adı doğrulaması ve fonksiyon deploy'u. Anahtar girilene kadar fonksiyon
+uyarı loglayıp geçer, rapor yine kaydedilir.
+
 ⚠️ **Açık kalan zayıf halka — atama bağı isim üzerinden.** Antrenör
 kütüphaneden bir hareket eklediğinde programa yalnızca `name` yazılıyor;
 anlatım o isimden çözülüyor (`exerciseByName`). Antrenör ismi elle
