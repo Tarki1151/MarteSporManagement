@@ -71,9 +71,22 @@ Guideline 2.1 ("incomplete") riski. Üstelik salonun telefonu
 için okuyamaz — buton bağlansa bile veri yok. Ya numarayı `tenants` ana
 dokümanına (yalnızca telefon, e-posta değil) taşı, ya butonu kaldır.
 
-**4b. PER-2 · Şifremi unuttum yok.** `sendPasswordResetEmail` kod tabanında
-hiç geçmiyor. E-posta/şifre ile kaydolan üye şifresini unutursa kendi başına
-çözemez. Google/Apple ile girenler etkilenmez.
+**4b. [x] PER-2 · Şifremi unuttum** *(2 Eylül 2026 — kod hazır, deploy
+bekliyor).* Giriş ekranında bağlantı; `requestPasswordReset` callable'ı
+`generatePasswordResetLink` ile bağlantıyı üretip **Resend** üzerinden
+doğrulanmış `salt-tech-apps.com` alan adından Türkçe gönderiyor. İstemcinin
+kendi `sendPasswordResetEmail`'i bilinçli olarak kullanılmadı: o, Firebase'in
+posta servisinden varsayılan şablonla gider; kilitlenmiş bir üyenin okuyacağı
+tek mesaj bu, ürünün diliyle olmalı.
+
+*Hesap sayımına kapalı:* callable, adresin hesabı olsun olmasın **her zaman**
+başarı döner ve ekran da öyle söyler ("bu adres kayıtlıysa..."). Dürüst cevap
+vermek, isteyenin adres deneyerek kimin üye olduğunu öğrenmesine yarardı.
+
+⚠️ **Kötüye kullanım yüzeyi:** callable kimlik doğrulaması istemiyor (isteyen
+şifresini unutmuş olabilir) ve hız sınırı yok — App Check bu projede kurulu
+değil. Bir saldırgan adres başına tekrar tekrar posta tetikleyebilir. Yayın
+öncesi App Check ya da basit bir adres/IP başına kısıtlama düşünülmeli.
 
 **4c. PER-3 · Kayıtta KVKK / kullanım şartları onayı yok.** `LegalLinks`
 yalnızca profil ekranlarının altında. Aydınlatma metni kayıt anında
