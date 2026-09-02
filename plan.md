@@ -155,11 +155,12 @@ gecikti" ve "kimin paketi bitiyor" soruları bugün üye üye açarak
 cevaplanıyor. PKG-12'nin "ödeme defteri bağı" ve "yaklaşan bitişler" alt
 maddeleri bu yüzden raporun ilk iki kartı olmalı.*
 
-**5a. PER-7 · Antrenör üyenin paketini/kalan hakkını göremiyor.**
-`trainer/member.tsx` program + ölçüm + antrenman gösteriyor; paket, kalan
-özel ders, bitiş tarihi yok — aynı bilgi `admin/member.tsx`'te var. "Kaç
-dersim kaldı?" sorusunu antrenör cevaplayamıyor. Yarım gün; PKG-12'nin
-antrenör ayağı sayılır, ondan önce yapılabilir.
+**5a. [x] PER-7 · Antrenöre paket ve kalan hak** *(3 Eylül 2026).* Paket
+bloğu programın üstünde — ekrandaki her şeyin bağlamı o. Kalan **gün sayısı**
+tarihten önce geliyor: antrenörün kararı "on günü kalmış birine sekiz
+haftalık program yazmaya değer mi", tarih bunu söylemiyor. Salt okunur; paket
+atamak yönetici işi. *Kural değişikliği gerekmedi* — `member_packages` ve
+`member_credits` zaten `isTenantStaff`'a açıkmış, ekran hiç sormamış.
 
 **5b. PER-8 · Grup dersi antrenöre kapalı; derse kimin kayıtlı olduğu
 hiçbir ekranda yok.** Ders programı yalnızca `canManageGym` ekranında;
@@ -195,10 +196,15 @@ iptal onayında sabit "24 saatten az" yazıyor; salon 48 yaptıysa üyeye yanlı
 söylüyor. Metin `tenants.cancellationHours`'tan gelmeli ve paket detayında
 kalıcı olarak yazmalı.*
 
-**7a. PER-12 · Admin üye listesinde arama + filtre + sayfalama.** Antrenör
-ekranında arama var, `admin/members.tsx`'te yok; `watchActiveMembers`
-limitsiz. 120 üyede kaydırarak arama. Filtreler raporlamadan gelir
-(paketi biten / borçlu / yeni) — o yüzden 5'ten sonra.
+**7a. [~] PER-12 · Admin üye listesinde arama** *(3 Eylül 2026 — arama ve
+sıralama yapıldı).* Liste ayrıca **alfabetik sıralandı**; öncesinde
+Firestore'un döndürdüğü sıradaydı, yani gözle taramak bile mümkün değildi.
+Arama alanı 8 üyenin altında görünmüyor.
+
+**Kalan:** *filtreler* (paketi biten / borçlu / yeni) — o durumlar raporlama
+işinde türetiliyor, oradan gelecekler. *Sunucu tarafı sayfalama* — roster
+zaten yüklü ve salon yüzlerce üye, binlerce değil; gerektiğinde raporlamanın
+kapsamlı sorgularıyla birlikte.
 
 ### Kuşak 3 — üye derinliği ve ölçeklenince acıtanlar
 
