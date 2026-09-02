@@ -29,9 +29,13 @@ Sıra değerle değil, **bağımlılık ve risk** ile belirlendi: yayını engel
 
 ### Kuşak 1 — yayını gerçekten engelleyenler
 
-**1. P0-1 · Freemium duvarı (IAP).** *(Sunucu yarısı 2 Eylül 2026'da yazıldı
-— `revenueCatWebhook`. Kalan: RevenueCat ürün/entitlement kurulumu, mağaza
-abonelik ürünleri, `react-native-purchases` ve satın alma ekranı.)* Açık maddeler içinde tek başına en
+**1. P0-1 · Freemium duvarı (IAP).** *(2 Eylül 2026: sunucu yarısı
+`revenueCatWebhook`, istemci yarısı `services/purchases.ts` + yeniden
+yazılan `paywall.tsx` hazır. Apple'da abonelik grubu ve iki ürün oluşturuldu,
+Paid Apps anlaşması `Processing`. **Kalan:** RevenueCat panel kurulumu
+(In-App Purchase Key, entitlement `pro`, offering `default`), EAS ortam
+değişkenleri, webhook secret + deploy, Play tarafında abonelik ürünleri,
+ve yeni bir EAS build — `react-native-purchases` native modül.)* Açık maddeler içinde tek başına en
 ağırı. Bir salon 10 aktif üyeye ulaşınca 11.'yi **hiçbir zaman**
 onaylayamıyor; `paywall.tsx`'teki yükseltme düğmesi yalnızca geri gidiyor.
 Tarabya Marte için elle bir abonelik yazılarak geçici olarak açıldı, yani
