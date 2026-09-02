@@ -181,6 +181,9 @@ istemci ilk aktif üyeliği alıp gerisini yok sayıyor. İki salona üye olan k
 ikincisine hiç erişemiyor.
 
 **13. PER-17 · WORKOUT — antrenman derinliği (kısaltılmış kapsam).**
+*Model değişikliği yapılırken `ProgramExercise.exerciseId` de eklenmeli —
+PER-19'un anlatım bağı bugün isim string'i üzerinden kuruluyor ve antrenör
+ismi düzenlerse sessizce kopuyor.*
 **Karar (kullanıcı, 2 Eylül 2026): üyelerin çoğu PT/grup, ağırlıkçı
 azınlık** → yalnızca iki parça: (a) **çok günlü program** —
 `watchActiveProgramForMember` tek program döndürüyor, Push/Pull/Legs
@@ -220,6 +223,46 @@ düzeltildi**: barfiks yerde duruyordu (asılı figür yere basıyordu), bird-do
 yatıyor gibi okunuyordu, kedi-deve bird-dog'un bacak uzatma karesini
 kullanıyordu, reverse fly dik gövdeyle lateral raise'e dönüşmüştü, leg curl
 oturarak extension karesini kullanıyordu (diz ters yöne gidiyordu).
+
+**Erişim ve kapsam (2 Eylül 2026, kullanıcı kararları).** Sekme eklenmedi —
+üye tarafında zaten beş sekme var, altıncısı sık kullanılanları başparmak
+erişiminden çıkarır (AGENTS §2).
+
+| Kim | Nereden | Ne görür |
+|---|---|---|
+| Üye | Program sekmesi → "Programımdaki hareketler" | **yalnızca kendisine atananlar** (`scope=program`) |
+| Antrenör | Profil → "Hareket kütüphanesi"; ayrıca builder'daki ⓘ | 46 hareketin tamamı |
+| Yönetici | Salon → "Hareket kütüphanesi" | 46 hareketin tamamı |
+
+Üyeye 46 hareketlik katalog vermek, onu antrenörünün yazmadığı bir listeden
+çalışmaya davet eder; sorumluluk antrenörde kalmalı.
+
+**Sorun bildirme.** Detay ekranının altında, **yalnızca personele** görünen
+bir düğme: dört sebep (çizim/kaslar/anlatım/başka) + not, `exercise_reports`
+koleksiyonuna yazar. Koleksiyon salt-yazılır — anlatımlar bizim içeriğimiz,
+salonun değil; rapor geliştiriciye giden bir mesaj. Kurallar + 7 test yazıldı
+(175 → 182 test), **2 Eylül 2026'da deploy edildi**. Üyeye kapalı: bir pozun
+hareketi yanlış anlatıp anlatmadığı antrenörlük kararı, ayrıca açık bir
+bildirim düğmesi spam hedefi.
+
+Bunun asıl değeri: 43 doğrulanmamış pozu tek büyük onay turu beklemek yerine,
+hatayı fark eden kişiden sürekli düzeltme almak.
+
+⚠️ **Açık kalan zayıf halka — atama bağı isim üzerinden.** Antrenör
+kütüphaneden bir hareket eklediğinde programa yalnızca `name` yazılıyor;
+anlatım o isimden çözülüyor (`exerciseByName`). Antrenör ismi elle
+düzenlerse bağ **sessizce** kopar ve üye anlatımı kaybeder. Kalıcı çözüm
+`ProgramExercise.exerciseId` alanı — PER-17'nin model değişikliğiyle birlikte
+yapılmalı, ayrı iş açmaya değmez. `SCHEMA.md` → `programs` bölümünde de
+işaretli.
+
+**Yol üstünde bulunan hata:** `mix(colors.line, …)` — `line` token'ı bir
+`rgba()` dizesi, `mix` ise hex okuyor, sonuç `#NaNcbNaN`. Kontrast
+ayarından beri bütün kas sınırları ve zemin çizgisi sessizce kayıptı.
+Ayrıca `socialAuth`'un modül kapsamındaki Google Sign-In import'u Expo Go'da
+uygulamayı açılışta düşürüyordu (projenin kendi `scripts/sim.sh`'i bu yüzden
+çalışmıyordu) — require ilk kullanıma ertelendi. **Google girişinin gerçek
+akışı doğrulanmadı**, native build gerektiriyor.
 
 **13a. PER-18 · Hazır program şablonları — PER-17 ile tek iş.** *(Karar,
 kullanıcı, 2 Eylül 2026.)* Antrenör bugün her üyeye sıfırdan, 10 sabit
@@ -3896,7 +3939,7 @@ zaten PKG-12'nin içindeydi, yeni madde açılmadı.
 | [ ] PER-16 | Duyuru / toplu bildirim (+ promosyonun üyeye görünmesi) | 3 | H-10 |
 | [ ] PER-17 | WORKOUT: çok günlü program + "geçen sefer" | 3 | B-1, B-3 |
 | [ ] PER-18 | Hazır program şablonları (ortak kütüphane + ısınma ön bloğu) — PER-17 ile tek iş | 3 | kullanıcı isteği |
-| [x] PER-19 | Hareket görselleştirici — kas haritası + poz kareleri, 46 kanonik hareket (2 Eylül 2026: kod tarafı yapıldı, poz kareleri antrenör onayı bekliyor) | 3 | Claude Design + kullanıcı isteği |
+| [x] PER-19 | Hareket görselleştirici — 46 hareket, kas haritası + poz kareleri, göz atılabilir liste, personel sorun bildirimi (2 Eylül 2026: kod + kurallar deploy edildi; poz kareleri antrenör onayı bekliyor, atama bağı PER-17'de `exerciseId`'ye taşınacak) | 3 | Claude Design + kullanıcı isteği |
 
 Kuyruğa yazılanlar (P2/P3) "KALAN İŞLER → Kuyruk" altında; ayrı madde
 açılmadı, karar verildiğinde açılır.

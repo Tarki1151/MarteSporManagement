@@ -40,11 +40,20 @@ kurallarıyla zorlanır — istemciye güvenilmez.
 | `tenant_memberships` | `{tenantId}_{userId}` |
 | `calendar_shares` | `{tenantId}_{ownerTrainerId}_{viewerTrainerId}` |
 | `push_tokens` | Expo push token'ının kendisi |
+| `exercise_reports` | otomatik (salt-yazılır) |
 | diğerleri | Firestore otomatik id |
 
 **Tarihler.** Firestore `Timestamp` olarak yazılır, `convert.ts` içindeki
 `toDate()` ile JS `Date`'e çevrilir. Yazarken `serverTimestamp()` tercih
 edilir (istemci saati güvenilmez).
+
+**Veritabanında olmayan şey: hareket kütüphanesi.** 46 hareketin adı,
+kas haritası, poz kareleri ve anlatımı `gymentra-mobile/src/data/exerciseLibrary.ts`
+içinde **istemci tarafında sabit veri** olarak duruyor — Firestore'da bir
+`exercises` koleksiyonu yok ve olmamalı: içerik uygulamayla birlikte
+sürümleniyor, salona göre değişmiyor ve çevrimdışı çalışması gerekiyor. Salon
+kendi hareketini ekleyemez; o istendiğinde ayrı bir karar (bkz. plan.md B-7).
+Dosya üretilendir, kaynağı `marte06/scripts/build_exercise_library.py`.
 
 **Gömülü diziler.** `programs.exercises`, `workout_logs.exerciseLogs`,
 `classes.bookedUserIds` alt koleksiyon değil, gömülü dizidir: sınırlı
@@ -75,6 +84,7 @@ dizi bütünüyle yeniden yazılır.
      ├──► measurements    (vücut ölçümleri)
      ├──► pt_sessions     (birebir randevu)
      ├──► push_tokens     (cihaz bildirim jetonu)
+     ├──► exercise_reports (personel sorun bildirimi, salt-yazılır)
      └──► member_packages (gym_packages'tan atanmış, hakları kopyalar)
              ├──► member_credits      (ders/grup dersi kota bakiyesi)
              └──► member_entitlements (güncel paketin tek-dokümanlık hak önbelleği — kural bunu okur)
@@ -282,6 +292,17 @@ Bkz. `checkinRepo.ts`'deki `resolveAccess`.
 | `status` | `'draft' \| 'active'` | |
 | `exercises` | ProgramExercise[] | Gömülü: `{ id, name, sets, reps, targetWeightKg }` |
 | `createdAt` / `updatedAt` | Timestamp | |
+
+**Hareket kütüphanesi bağı (PER-19).** Antrenör `trainer/builder`'daki
+seçiciden bir hareket eklediğinde `name` alanına kütüphanenin Türkçe adı
+yazılır (ör. `Goblet squat`). Anlatım ekranı bu **isimden** çözülür
+(`exerciseByName`), ayrı bir `exerciseId` alanı **yoktur**.
+
+⚠️ **Bunun bedeli:** antrenör ismi elle düzenlerse bağ kopar ve üye o
+hareketin anlatımını kaybeder — sessizce, hata vermeden. Kalıcı çözüm
+`ProgramExercise.exerciseId` alanı eklemek; PER-17'nin model değişikliğiyle
+birlikte yapılmalı (plan.md Kuşak 3). O zamana kadar `exerciseByName` önce
+tam eşleşme, sonra gevşek "içeriyor" eşleşmesi deniyor.
 
 **Kurallar:** okuma = programın üyesi veya kiracı personeli. Yazma = kiracı
 personeli; `tenantId` ve `memberId` değişmez.
@@ -725,6 +746,34 @@ silme.
 
 **Kurallar:** istemci okuması **kapalı** (`allow read: if false`). Yalnızca
 Cloud Functions (Admin SDK) okur. Temizlik mekanizması yok (plan.md P1-7).
+
+---
+
+### `exercise_reports` — hareket anlatımı sorun bildirimi (PER-19)
+| Alan | Tip | Not |
+|---|---|---|
+| `exerciseId` | string | `exerciseLibrary.ts` içindeki kanonik id (ör. `back-squat`) |
+| `exerciseName` | string | Denormalize — kütüphane değişse de raporun neyi anlattığı kalsın |
+| `tenantId` | string | Bildirimi gönderen personelin salonu |
+| `reportedBy` | string | Auth uid |
+| `reportedByName` | string? | Denormalize |
+| `reason` | `'pose' \| 'muscles' \| 'text' \| 'other'` | |
+| `note` | string | En fazla 500 karakter |
+| `createdAt` | Timestamp | |
+
+**Kurallar:** istemci okuması **kapalı** (`allow read: if false`), güncelleme ve
+silme de kapalı. Yalnızca ekleme, yalnızca **kiracı personeli**
+(`isTenantStaff`), `reportedBy == auth.uid` zorunlu.
+
+**Neden salt-yazılır:** hareket anlatımları uygulamayla birlikte gelen bizim
+içeriğimiz, salonun verisi değil. Bir rapor geliştiriciye giden mesajdır;
+salonun yöneteceği bir şey olmadığı için besleyecek bir gelen kutusu ekranı
+da yok. Ayrıca başka bir salonu adıyla anan raporun o salonda görünmesinin
+bir anlamı yok. Okuma Firebase konsolundan ya da Admin SDK ile yapılır.
+
+**Neden yalnızca personel:** bir pozun hareketi yanlış anlatıp anlatmadığı
+antrenörlük kararı; ayrıca her oturum açmış kullanıcıya yazma açmak burayı
+spam hedefi yapar.
 
 ---
 
