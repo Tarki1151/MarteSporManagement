@@ -71,8 +71,9 @@ Guideline 2.1 ("incomplete") riski. Üstelik salonun telefonu
 için okuyamaz — buton bağlansa bile veri yok. Ya numarayı `tenants` ana
 dokümanına (yalnızca telefon, e-posta değil) taşı, ya butonu kaldır.
 
-**4b. [x] PER-2 · Şifremi unuttum** *(2 Eylül 2026 — kod hazır, deploy
-bekliyor).* Giriş ekranında bağlantı; `requestPasswordReset` callable'ı
+**4b. [x] PER-2 · Şifremi unuttum** *(2 Eylül 2026 — deploy edildi ve
+simülatörde uçtan uca doğrulandı: istemci → callable →
+`generatePasswordResetLink` → Resend → gelen kutu).* Giriş ekranında bağlantı; `requestPasswordReset` callable'ı
 `generatePasswordResetLink` ile bağlantıyı üretip **Resend** üzerinden
 doğrulanmış `salt-tech-apps.com` alan adından Türkçe gönderiyor. İstemcinin
 kendi `sendPasswordResetEmail`'i bilinçli olarak kullanılmadı: o, Firebase'in
@@ -92,9 +93,28 @@ geri dönüş yolunu kapatır. IP sayacı ayrı, çünkü adres başına sınır
 "binlerce farklı adrese birer istek" saldırısını hiç görmez; posta kotasını
 yakan senaryo odur. Sayaç anahtarları SHA-256 (IP kişisel veri).
 
+İstemci `retryAfterSeconds` döndüğünde "gönderildi" demiyor, bekleme
+süresini söylüyor — sınıra takılan üye aksi hâlde hiç yola çıkmamış bir
+e-postayı bekliyordu.
+
 ⚠️ **Kalan yüzey:** callable kimlik doğrulaması istemiyor (isteyen zaten
 giriş yapamıyor) ve App Check bu projede kurulu değil. Dağıtık bir saldırı
 (çok sayıda IP) hâlâ mümkün. Yayın sonrası App Check değerlendirilmeli.
+
+*Teslimat notu:* ilk mail spam'e düştü. Başlıklarda SPF/DKIM/DMARC **üçü de
+PASS** — yapılandırma eksiği yok, sebep soğuk alan adı itibarı. Kodla
+çözülecek bir şey değil; hacimle ısınır. Yine de düz metnin yanına HTML
+gövde eklendi (gövdesi çıplak URL olan düz metin küçük de olsa bir spam
+sinyali).
+
+*Deploy sırasında çıkan tuzak — tekrarlarsa:* `firebase deploy` Cloud Build
+sürerken "An unexpected error has occurred" ile düşebiliyor. Fonksiyon
+oluşuyor ve ACTIVE görünüyor **ama Cloud Run'a public invoker yetkisi
+verilmemiş oluyor**; her çağrı 401 alıyor ve log'da
+*"The request was not authorized to invoke this service"* yazıyor.
+Çözüm: deploy'u tekrar çalıştırmak (fonksiyon var olduğu için güncelleme
+olarak hızlı biter ve son adıma ulaşır). Firestore tetikleyicileri bundan
+etkilenmiyor — dışarıdan çağrılmadıkları için o yetkiye ihtiyaçları yok.
 
 **4c. PER-3 · Kayıtta KVKK / kullanım şartları onayı yok.** `LegalLinks`
 yalnızca profil ekranlarının altında. Aydınlatma metni kayıt anında
