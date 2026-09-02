@@ -236,7 +236,9 @@ kapsamında.
 | `date` | Timestamp | |
 | `durationMinutes` / `capacity` | number | |
 | `bookedUserIds` | string[] | Auth uid dizisi |
-| `waitlistUserIds` | string[] | |
+| `waitlistUserIds` | string[] |
+| `trainerId` | string? | Dersi veren antrenörün uid'si (PER-8) |
+| `attendance` | map? | `{uid: 'present' \| 'absent'}` (PER-8) |
 
 **Kurallar:** okuma **ve** yazma salona aktif üyelik gerektirir
 (`isTenantMember`) — çapraz kiracı sızıntısı kapatıldı. Yazma = kiracı
@@ -255,6 +257,20 @@ paketi değişse bile önceden yaptığı rezervasyonu iptal edebilmesi gerekir.
 dinliyor.
 
 **Index:** `tenantId ASC, date ASC`
+
+---
+
+**Antrenör sahipliği ve yoklama (PER-8).** `trainerId` dersi kimin verdiğini
+söyler; `trainerName` serbest metin olduğu için "benim derslerim" sorgusu
+onsuz yazılamıyordu. Kurallar: antrenör yalnızca `trainerId == uid` olan
+dersi oluşturur/düzenler/siler, ve düzenlerken `tenantId` ile `trainerId`
+sabit — kendi dersini düzenlemek, onu başka salona taşımanın ya da bir
+meslektaşa devretmenin yolu olmamalı. Devretmek yönetici işi.
+
+`attendance` **üç durumlu**: kayıt yoksa "işaretlenmedi", ki bu `'absent'`
+ile aynı şey değil. "Kimse yoklama almadı" ile "gelmedi" farklı olgular;
+ikisini birleştiren bir rapor yalan söyler. Yoklama alınmamış bir dersi
+"herkes gelmemiş" diye saymamak için raporlama bu ayrımı korumalı.
 
 ---
 
