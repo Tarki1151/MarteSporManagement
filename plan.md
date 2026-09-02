@@ -83,10 +83,18 @@ tek mesaj bu, ürünün diliyle olmalı.
 başarı döner ve ekran da öyle söyler ("bu adres kayıtlıysa..."). Dürüst cevap
 vermek, isteyenin adres deneyerek kimin üye olduğunu öğrenmesine yarardı.
 
-⚠️ **Kötüye kullanım yüzeyi:** callable kimlik doğrulaması istemiyor (isteyen
-şifresini unutmuş olabilir) ve hız sınırı yok — App Check bu projede kurulu
-değil. Bir saldırgan adres başına tekrar tekrar posta tetikleyebilir. Yayın
-öncesi App Check ya da basit bir adres/IP başına kısıtlama düşünülmeli.
+*Hız sınırı (2 Eylül 2026):* adres başına 0s / 1dk / 5dk / 15dk / 1sa, sonra
+**süresiz saatte bir**; 24 saat sessizlik sayacı sıfırlar. Ayrıca IP başına
+saatte 20. Tavanın kesme değil yavaşlatma olması bilinçli: sert sınır,
+e-postanı bilen birinin haklarını yakıp seni 24 saat kendi şifreni
+sıfırlayamaz hâle getirmesine izin verirdi — saldırgan hesabı alamaz ama
+geri dönüş yolunu kapatır. IP sayacı ayrı, çünkü adres başına sınır
+"binlerce farklı adrese birer istek" saldırısını hiç görmez; posta kotasını
+yakan senaryo odur. Sayaç anahtarları SHA-256 (IP kişisel veri).
+
+⚠️ **Kalan yüzey:** callable kimlik doğrulaması istemiyor (isteyen zaten
+giriş yapamıyor) ve App Check bu projede kurulu değil. Dağıtık bir saldırı
+(çok sayıda IP) hâlâ mümkün. Yayın sonrası App Check değerlendirilmeli.
 
 **4c. PER-3 · Kayıtta KVKK / kullanım şartları onayı yok.** `LegalLinks`
 yalnızca profil ekranlarının altında. Aydınlatma metni kayıt anında
@@ -357,6 +365,38 @@ prim takibi · gün içinde bölünmüş çalışma saati · "fazla" bulunanlar�
 sadeleştirilmesi (takvim paylaşımını çok antrenörlü salona sakla,
 `trainer/programs` sekmesini `trainer/index` filtresine indir, tema modunu
 üyeye bırak, `member/workout` sekmesini program atanınca göster).
+
+### v2 notu — salon yaşam döngüsü (öncelik yok)
+
+*(Kullanıcı isteği, 2 Eylül 2026. Yayın sonrası, v2 için not.)*
+
+**Asıl dert (kullanıcı):** yönetim görünümü ölü kayıtlarla karmaşıklaşıyor.
+Depolama maliyeti değil — 0 üyeli bir salon Firestore'da pratikte sıfıra mal
+oluyor. Bu, çözümü büyük ölçüde belirliyor: **arşivleme yeter, silme
+gerekmiyor.**
+
+**Karar — iki ayrı durum:**
+
+1. **Hiç üye almamış salon** *silinebilir.* Ödeme kaydı yok, üye yok, gerçek
+   bir işletme değil — yanlışlıkla ya da denemek için açılmış bir kayıt.
+2. **Üye almış ama terk edilmiş salon** → `status: 'dormant'`. Sayımlardan
+   düşer, listelerde görünmez, veri durur. Sahip dönerse geri açılır.
+   Çok uzun bir süre (ör. 2 yıl) ve uyarı e-postalarından sonra silinebilir.
+
+*Ödeme kayıtları hakkında:* ilk değerlendirmemde VUK saklama yükümlülüğünü
+gerekçe göstermiştim; **kullanıcı düzeltti** — bu defter resmi bir belge
+değil (fatura yok, mali kimlik yok), ispat sayılmıyor, dolayısıyla yasal
+saklama zorunluluğu yok. Yine de silme uyarı ve süre ister: yasal değil ama
+o kayıtlar salon sahibinin kendi işletme geçmişi.
+
+**Tetikleyici eşikleri konuşulmadı** — "1 ay içinde üye eklenmeyen" ilk
+öneriydi ama Aralık'ta kurulup Ocak'ta açılacak salonu vurur. Uygulanmadan
+önce eşikler ve uyarı akışı ayrıca kararlaştırılmalı.
+
+**Yan fayda:** terk edilmiş salonların tuttuğu salon kodları (`TARABYA-01`
+gibi) serbest kalır.
+
+---
 
 **P3 (uzak ufuk):** **cinsiyet alanı + kadın antrenör filtresi + kadınlara
 özel ders/saat** — *karar (kullanıcı, 2 Eylül 2026): şimdilik hayır; Tarabya
