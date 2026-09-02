@@ -59,17 +59,21 @@ Android yayını anlamsız.
 hesap (onay bekleyen bir hesapla incelemeci hiçbir şey göremez → kesin ret),
 6.5" ekran görüntüleri.
 
-### Kuşak 1.5 — incelemeci görürse ret, üye görürse kilitlenme (hepsi küçük)
+### Kuşak 1.5 — [x] TAMAMLANDI (3 Eylül 2026)
+
+Altı maddenin altısı da kapandı. **Kalan:** `firestore.rules` (PER-1) ve
+`functions:requestPasswordReset` (PER-2 HTML gövde) deploy edilmeli.
 
 Mağaza gönderiminden **önce**, aynı build'e girecek şekilde. Her biri en
 fazla yarım gün; toplamı Kuşak 1'in tek bir maddesinden kısa.
 
-**4a. PER-1 · `onboarding/pending.tsx` "Salonu ara" ölü buton.** `onPress`
-yok. Demo hesapla giren incelemeci tam bu ekrana düşebilir; işlevsiz buton
-Guideline 2.1 ("incomplete") riski. Üstelik salonun telefonu
-`tenants/{id}/private/contact` altında ve onay bekleyen kişi üye olmadığı
-için okuyamaz — buton bağlansa bile veri yok. Ya numarayı `tenants` ana
-dokümanına (yalnızca telefon, e-posta değil) taşı, ya butonu kaldır.
+**4a. [x] PER-1 · "Salonu ara" ölü buton** *(3 Eylül 2026).* Buton gerçek
+numaraya bağlandı; numara yoksa hiç gösterilmiyor. **Karar:** numarayı
+herkese açık `tenants` dokümanına taşımak yerine kural genişletildi —
+`isPendingIn`, onay bekleyen başvurana **yalnızca başvurduğu salonun**
+iletişim bilgisini açıyor. `tenants` dokümanı join-by-code için her oturum
+açmış kullanıcıya okunur, yani oraya taşımak her salonun iletişim bilgisini
+herkese açardı. 5 kural testi (184 → 189). **Kural deploy edilmeli.**
 
 **4b. [x] PER-2 · Şifremi unuttum** *(2 Eylül 2026 — deploy edildi ve
 simülatörde uçtan uca doğrulandı: istemci → callable →
@@ -116,19 +120,23 @@ verilmemiş oluyor**; her çağrı 401 alıyor ve log'da
 olarak hızlı biter ve son adıma ulaşır). Firestore tetikleyicileri bundan
 etkilenmiyor — dışarıdan çağrılmadıkları için o yetkiye ihtiyaçları yok.
 
-**4c. PER-3 · Kayıtta KVKK / kullanım şartları onayı yok.** `LegalLinks`
-yalnızca profil ekranlarının altında. Aydınlatma metni kayıt anında
-sunulmalı; Apple 5.1.1 de bunu ister.
+**4c. [x] PER-3 · Kayıtta KVKK aydınlatması** *(3 Eylül 2026).* Birincil
+aksiyonun altına bildirim (`LegalConsentNotice`), bağlantılar tıklanabilir,
+sosyal giriş butonlarını da kapsıyor. **Karar — onay kutusu değil:** ad ve
+e-posta sözleşmenin ifası için gerekli (KVKK md. 5/2-c), yani hukuki
+dayanağı zaten var. Gereksiz bir kutu dayanağı yanlış tarif eder ve
+gerçekten açık rıza gereken yerde (ileride pazarlama izni) kutunun anlamını
+aşındırır. Zorunlu olan aydınlatma (md. 10) bildirimle karşılanıyor.
 
-**4d. PER-4 · Hedef tekrar sayısı antrenman ekranında gösterilmiyor.**
-`ProgramExercise.reps` builder'da giriliyor, `workout/session.tsx` yalnızca
-`setsTarget` okuyor. Antrenörün yazdığı "3×12"nin "12"si üyeye ulaşmıyor.
-Hata.
+**4d. [x] PER-4 · Hedef tekrar sayısı** *(3 Eylül 2026).* Kök sebep ekran
+değilmiş: `startWorkoutLog` set sayısını kopyalayıp `reps`'i düşürüyordu,
+yani veri log'a hiç girmiyordu. `ExerciseLog.repsTarget` eklendi
+(opsiyonel — eski loglarda yok), zincir uçtan uca bağlandı.
 
-**4e. PER-5 · "Tümünü onayla" limit dolunca bozuluyor.** `admin/members.tsx`
-→ `requests.forEach((r) => approve(r))` paralel; ücretsiz limitte 5 bekleyen
-istek = 5 hata toast'ı + 5 kez üst üste `router.push('/paywall')`. Sıralı
-işle, limit dolunca döngüyü kes, tek mesaj.
+**4e. [x] PER-5 · "Tümünü onayla"** *(3 Eylül 2026).* Sıralı hâle getirildi
+ve ilk redde duruyor: koltuk bittiyse sıradaki de sığmaz, devam etmek
+yalnızca gürültü üretir. Duvara kadar onaylananlar onaylı kalıyor, mesaj
+kaçının geçtiğini söylüyor.
 
 **4f. PER-6 · Antrenörün eklediği randevuda çakışma kontrolü yok.**
 `ptSessionRepo.createPtSession` doğrudan `setDoc`; ne mevcut randevularla
