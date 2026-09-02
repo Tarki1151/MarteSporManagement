@@ -191,6 +191,36 @@ açılıyor, üyenin geçen hafta gerçekte kaldırdığıyla değil; son
 (set bazlı ağırlık/tekrar, PR ve hacim grafiği, dinlenme sayacı, salona
 açık egzersiz kütüphanesi, kardiyo tipi) **P2 kuyruğunda**.
 
+**13b. PER-19 · Hareket görselleştirici — PER-18 ile tek iş.** *(Karar,
+kullanıcı, 2 Eylül 2026; **kod tarafı yapıldı**.)* Claude Design'da üretilen
+"Exercise Library" ekranı (ön/arka kas haritası + başlangıç/bitiş poz kareleri)
+uygulamaya taşındı. Tasarım dosyası tarayıcıya özel bir şablon motoruyla
+yazılmıştı, RN'de çalışmıyordu; 39 bölgeli anatomi SVG'si `react-native-svg`
+bileşenlerine, poz çizeri de aynı eklem modeliyle yeniden yazıldı.
+
+*Kapsam kararı:* şablonlardaki 146 satır **101 benzersiz isme**, o da
+**46 kanonik harekete** indirildi (kullanıcı: "50'yi geçmesin"). Kardiyo
+blokları, tek satırlık devre tarifleri ve "günün ilk hareketi — boş bar"
+gibi programlama talimatları kütüphaneye **girmiyor** — başlangıç/bitiş pozu
+olan tek hareketler değiller; ekran bunu söylüyor, uydurmuyor.
+
+*Yapılanlar:* `src/data/exerciseLibrary.ts` (üretilen: 46 hareket, 30 poz
+arketipi, 101 isim → kanonik id eşlemesi), `components/MuscleMap.tsx`,
+`components/PoseDiagram.tsx`, `app/exercise-detail.tsx` (üye ve antrenöre
+açık ortak rota), `trainer/builder.tsx` egzersiz seçici artık koda gömülü 10
+isim yerine kütüphaneyi okuyor, `workout/session.tsx`'teki boş gri kare
+"Nasıl yapılır?" girişine dönüştü. Üreteç: `marte06/scripts/build_exercise_library.py`
+(tasarım dosyası provenance olarak yanında). 10 yeni test.
+
+*Poz kareleri şematiktir.* Üçü (bench, squat, deadlift) tasarımcının elle
+ayarladığı kareler; kalanı hareket kalıbı arketiplerinden türetildi. Hepsi
+`poseReviewed: false` taşıyor ve ekran "antrenör onayı bekliyor" diyor.
+Kontak sayfasında gözden geçirilirken **beş arketip yanlış çıktı ve
+düzeltildi**: barfiks yerde duruyordu (asılı figür yere basıyordu), bird-dog
+yatıyor gibi okunuyordu, kedi-deve bird-dog'un bacak uzatma karesini
+kullanıyordu, reverse fly dik gövdeyle lateral raise'e dönüşmüştü, leg curl
+oturarak extension karesini kullanıyordu (diz ters yöne gidiyordu).
+
 **13a. PER-18 · Hazır program şablonları — PER-17 ile tek iş.** *(Karar,
 kullanıcı, 2 Eylül 2026.)* Antrenör bugün her üyeye sıfırdan, 10 sabit
 egzersizli kütüphaneden program yazıyor. GymEntra ile gelen ortak
@@ -3837,6 +3867,9 @@ eksik ekran); algısal bulgular (yavaşlık, okunabilirlik) bu turda yok.
 - Hazır program şablonları **eklenecek** (PER-18): ortak kütüphane + salon
   kopyası, ısınma otomatik ön blok, 6 başlık × 2 seviye, yalnızca
   antrenör/salon atar.
+- Hareket görselleştirici (PER-19): kas haritası **46 kanonik harekete**,
+  poz kareleri de aynı 46'ya; üyeye antrenman sırasında açık; PER-18 ile
+  aynı iş sayılıyor.
 
 Raporun plan.md'yle çelişen iki bulgusu bağlamla düzeltildi: kotalı grup
 dersi "satılan özellik çalışmıyor" değil, PKG-4'ün bilinçli sınırıydı
@@ -3863,6 +3896,7 @@ zaten PKG-12'nin içindeydi, yeni madde açılmadı.
 | [ ] PER-16 | Duyuru / toplu bildirim (+ promosyonun üyeye görünmesi) | 3 | H-10 |
 | [ ] PER-17 | WORKOUT: çok günlü program + "geçen sefer" | 3 | B-1, B-3 |
 | [ ] PER-18 | Hazır program şablonları (ortak kütüphane + ısınma ön bloğu) — PER-17 ile tek iş | 3 | kullanıcı isteği |
+| [x] PER-19 | Hareket görselleştirici — kas haritası + poz kareleri, 46 kanonik hareket (2 Eylül 2026: kod tarafı yapıldı, poz kareleri antrenör onayı bekliyor) | 3 | Claude Design + kullanıcı isteği |
 
 Kuyruğa yazılanlar (P2/P3) "KALAN İŞLER → Kuyruk" altında; ayrı madde
 açılmadı, karar verildiğinde açılır.
