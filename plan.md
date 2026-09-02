@@ -21,11 +21,16 @@ kuralları, indexler, Cloud Functions) — paylaşılan Firebase projesi `taraby
 
 ---
 
-## KALAN İŞLER — sıralı (1 Eylül 2026)
+## KALAN İŞLER — sıralı (2 Eylül 2026)
 
 Bu bölüm, dosyanın geri kalanındaki açık maddelerin **tek sıralı listesi**.
 Sıra değerle değil, **bağımlılık ve risk** ile belirlendi: yayını engelleyen
 şey önce, ölçeklenince acıtan şey sonra, iyileştirme en sonda.
+
+*2 Eylül 2026 revizyonu:* dört persona ile yapılan kullanım testi
+(`personatalepleri.md`, ayrıntılar aşağıda **PER** bölümünde) sıraya bir
+"Kuşak 1.5" ekledi ve Kuşak 2–3'ü yeniden dizdi. Kuşak 1'e dokunulmadı:
+mağaza engeli olmayan hiçbir şey mağaza engelinin önüne geçmez.
 
 ### Kuşak 1 — yayını gerçekten engelleyenler
 
@@ -54,53 +59,210 @@ Android yayını anlamsız.
 hesap (onay bekleyen bir hesapla incelemeci hiçbir şey göremez → kesin ret),
 6.5" ekran görüntüleri.
 
-### Kuşak 2 — salon sahibinin ilk soracakları
+### Kuşak 1.5 — incelemeci görürse ret, üye görürse kilitlenme (hepsi küçük)
+
+Mağaza gönderiminden **önce**, aynı build'e girecek şekilde. Her biri en
+fazla yarım gün; toplamı Kuşak 1'in tek bir maddesinden kısa.
+
+**4a. PER-1 · `onboarding/pending.tsx` "Salonu ara" ölü buton.** `onPress`
+yok. Demo hesapla giren incelemeci tam bu ekrana düşebilir; işlevsiz buton
+Guideline 2.1 ("incomplete") riski. Üstelik salonun telefonu
+`tenants/{id}/private/contact` altında ve onay bekleyen kişi üye olmadığı
+için okuyamaz — buton bağlansa bile veri yok. Ya numarayı `tenants` ana
+dokümanına (yalnızca telefon, e-posta değil) taşı, ya butonu kaldır.
+
+**4b. PER-2 · Şifremi unuttum yok.** `sendPasswordResetEmail` kod tabanında
+hiç geçmiyor. E-posta/şifre ile kaydolan üye şifresini unutursa kendi başına
+çözemez. Google/Apple ile girenler etkilenmez.
+
+**4c. PER-3 · Kayıtta KVKK / kullanım şartları onayı yok.** `LegalLinks`
+yalnızca profil ekranlarının altında. Aydınlatma metni kayıt anında
+sunulmalı; Apple 5.1.1 de bunu ister.
+
+**4d. PER-4 · Hedef tekrar sayısı antrenman ekranında gösterilmiyor.**
+`ProgramExercise.reps` builder'da giriliyor, `workout/session.tsx` yalnızca
+`setsTarget` okuyor. Antrenörün yazdığı "3×12"nin "12"si üyeye ulaşmıyor.
+Hata.
+
+**4e. PER-5 · "Tümünü onayla" limit dolunca bozuluyor.** `admin/members.tsx`
+→ `requests.forEach((r) => approve(r))` paralel; ücretsiz limitte 5 bekleyen
+istek = 5 hata toast'ı + 5 kez üst üste `router.push('/paywall')`. Sıralı
+işle, limit dolunca döngüyü kes, tek mesaj.
+
+**4f. PER-6 · Antrenörün eklediği randevuda çakışma kontrolü yok.**
+`ptSessionRepo.createPtSession` doğrudan `setDoc`; ne mevcut randevularla
+çakışma, ne antrenörün kendi saatleri, ne salonun açık olması kontrol
+ediliyor. Üye tarafındaki `bookPtSessions` callable'ı bunların hepsini
+yapıyor. Aynı saate iki üye yazılabilir — P1 sınıfı veri bütünlüğü. Çözüm:
+antrenör oluşturmasını da callable'a taşı (`consumeCredit: false` bayrağıyla).
+
+### Kuşak 2 — salon sahibinin ve antrenörün günlük soruları
 
 **5. P4-5 + PKG-12 · Raporlama.** Aylık gelir, katılım oranı, aktif üye
 trendi, yaklaşan paket bitişleri, ödeme yapmayanlar. Panel bugün dört sayı
 gösteriyor; sahibin ikinci sorusuna cevabı yok. ADMIN-5 de buraya katlanıyor.
+*Persona testi (Hakan) öncelik gerekçesini pekiştirdi: "kimin parası
+gecikti" ve "kimin paketi bitiyor" soruları bugün üye üye açarak
+cevaplanıyor. PKG-12'nin "ödeme defteri bağı" ve "yaklaşan bitişler" alt
+maddeleri bu yüzden raporun ilk iki kartı olmalı.*
 
-**6. ~~P4-2 · Antrenör üyenin ilerlemesini göremiyor~~** — madde bayatmış,
-ekran zaten vardı (1 Eylül 2026).
+**5a. PER-7 · Antrenör üyenin paketini/kalan hakkını göremiyor.**
+`trainer/member.tsx` program + ölçüm + antrenman gösteriyor; paket, kalan
+özel ders, bitiş tarihi yok — aynı bilgi `admin/member.tsx`'te var. "Kaç
+dersim kaldı?" sorusunu antrenör cevaplayamıyor. Yarım gün; PKG-12'nin
+antrenör ayağı sayılır, ondan önce yapılabilir.
+
+**5b. PER-8 · Grup dersi antrenöre kapalı; derse kimin kayıtlı olduğu
+hiçbir ekranda yok.** Ders programı yalnızca `canManageGym` ekranında;
+`ClassSession.trainerName` serbest metin, antrenörün `userId`'sine bağlı
+değil — "benim derslerim" sorgusu bile yazılamıyor. Ders satırı "3/10 dolu"
+diyor, isim listesi ve yoklama yok. **Karar (kullanıcı, 2 Eylül 2026):
+antrenör tam yetki** — kendi dersini oluşturur/düzenler/iptal eder,
+katılımcıyı görür, yoklama alır. Kapsam: `ClassSession.trainerId` +
+`attendance` alanı (`{userId: 'present'|'absent'}`), kural değişikliği
+(antrenör yalnızca `trainerId == uid` olan dersleri yazar), antrenör
+"Derslerim" sekmesi, admin ders satırından katılımcı listesi.
+
+**5c. PER-9 · Kotalı grup dersi rezervasyonu.** PKG-4 bunu bilerek yarım
+bırakmıştı ("varsayılan şablonda yok, admin açarsa üye 'yakında' görür").
+**Karar (kullanıcı, 2 Eylül 2026): kotalı paket satılacak** — yani dal artık
+üretimde erişilir olacak ve bugünkü hâliyle satılan paket kullanılamaz.
+`bookGroupClass` callable'ı: `member_credits` (`groupClass`) düşer, `classes`
+dizisine yazar, dolu ise bekleme listesi; iptal `cancelGroupClassBooking`
+ile PKG-11 eşiğine göre iade. `classes.tsx:33` `canJoinGroupClass` kotalı
+dalı açar.
+
+**6. PER-10 + PKG-9 · Seri ders ve seri randevu — tek iş.** Grup dersi
+bugün tek seferlik kayıt: haftada 20 dersi olan salon 3 aylık programı için
+~240 kayıt giriyor. "Her Salı 19:00, 12 hafta" ile PKG-9'un "her Cuma 08:00,
+8 hafta"sı aynı desen (`seriesId` + toplu oluştur + seriyi topluca
+iptal/ertele). Ayrı yapılırsa iki farklı tekrar modeli çıkar; birlikte.
 
 **7. PKG-10 + PKG-11 · Dondurma ve iade politikası.** İkisi aynı soruyu
 soruyor (para/hak geri nasıl döner) ve ayrı ayrı yapılırsa çelişirler.
 `cancellationHours` alanı var ama yönetici ekranı yok.
+*PER-11 buraya katlanıyor: `member/index.tsx` ve `member/classes.tsx`
+iptal onayında sabit "24 saatten az" yazıyor; salon 48 yaptıysa üyeye yanlış
+söylüyor. Metin `tenants.cancellationHours`'tan gelmeli ve paket detayında
+kalıcı olarak yazmalı.*
 
-### Kuşak 3 — ölçeklenince acıtanlar
+**7a. PER-12 · Admin üye listesinde arama + filtre + sayfalama.** Antrenör
+ekranında arama var, `admin/members.tsx`'te yok; `watchActiveMembers`
+limitsiz. 120 üyede kaydırarak arama. Filtreler raporlamadan gelir
+(paketi biten / borçlu / yeni) — o yüzden 5'ten sonra.
 
-**8. P4-3 · Bildirim tercihleri.** Push açık/kapalı ve kategori bazlı tercih
-yok. KVKK/GDPR açısından da beklenen bir şey. Bildirim sayısı bu turda
-dörtten sekize çıktı — susturma yolu olmadan bu artış rahatsız edici olur.
+### Kuşak 3 — üye derinliği ve ölçeklenince acıtanlar
 
-**9. P1-8 + P4-6 · Çoklu salon üyeliği.** Kurallar ve veri modeli destekliyor,
+**8. P4-3 + PER-13 · Bildirim tercihleri ve ders hatırlatıcısı — birlikte.**
+Push açık/kapalı ve kategori bazlı tercih yok; sunucuda 11 bildirim var,
+hiçbiri "dersin 1 saat sonra" demiyor. Hatırlatıcı bildirim sayısını
+artırıyor; susturma yolu olmadan eklenmez. Önce tercih, sonra hatırlatıcı,
+aynı iş.
+
+**9. PER-14 · Antrenör işletme detayları.** (a) **No-show durumu** —
+`PtSessionStatus`'a `no-show`: hak yanar, üyeye bildirilir, rapora girer;
+bugün antrenör ya "Tamamla" (yalan) ya "İptal" (kredi iade, salon zarar)
+demek zorunda. (b) **İzin günü** — `TrainerAvailability.exceptions` modelde
+var, `availability.tsx` her kayıtta `[]` gönderiyor. (c) **Üye notu** —
+antrenörün üye başına, üyeye kapalı notu (sakatlık, hedef).
+
+**10. PER-15 · Üyeden yenileme talebi.** Paket yalnızca admin atıyor; biten
+paketin üyesi "salon yöneticisi atadığında görünür" duvarına bakıyor.
+"Yenileme talebi gönder" → admin'e bildirim + panelde bekleyen talep.
+PKG-12 yaklaşan bitişlerin üye ayağı; 5'ten sonra.
+
+**11. PER-16 · Duyuru / toplu bildirim.** "Yarın kapalıyız", "kampanya
+başladı" — uygulamada duyuru kavramı yok; promosyon üyeye hiç görünmüyor.
+`announcements` koleksiyonu + push + ana ekranda kart. Promosyonların üyeye
+görünür kampanyaya dönüşmesi de buraya bağlanır.
+
+**12. P1-8 + P4-6 · Çoklu salon üyeliği.** Kurallar ve veri modeli destekliyor,
 istemci ilk aktif üyeliği alıp gerisini yok sayıyor. İki salona üye olan kişi
 ikincisine hiç erişemiyor.
 
-**10. ~~UX-7 kalanı~~** — tamamlandı (1 Eylül 2026), on ekran.
+**13. PER-17 · WORKOUT — antrenman derinliği (kısaltılmış kapsam).**
+**Karar (kullanıcı, 2 Eylül 2026): üyelerin çoğu PT/grup, ağırlıkçı
+azınlık** → yalnızca iki parça: (a) **çok günlü program** —
+`watchActiveProgramForMember` tek program döndürüyor, Push/Pull/Legs
+modellenemiyor; `Program.days[]` + "bugün hangi gün" seçimi. (b) **"geçen
+sefer"** — antrenman ekranında ağırlık stepper'ı `targetWeightKg` ile
+açılıyor, üyenin geçen hafta gerçekte kaldırdığıyla değil; son
+`workout_logs` kaydından "geçen sefer: 80 kg × 3 set" satırı. Kalanı
+(set bazlı ağırlık/tekrar, PR ve hacim grafiği, dinlenme sayacı, salona
+açık egzersiz kütüphanesi, kardiyo tipi) **P2 kuyruğunda**.
 
-**11. PKG-9 · Seri randevu.** "Her cuma 08:00, 8 hafta." Sahibin istediği
-kolaylık, ama tek tek almak bugün çalışıyor — engelleyici değil.
+**13a. PER-18 · Hazır program şablonları — PER-17 ile tek iş.** *(Karar,
+kullanıcı, 2 Eylül 2026.)* Antrenör bugün her üyeye sıfırdan, 10 sabit
+egzersizli kütüphaneden program yazıyor. GymEntra ile gelen ortak
+`program_templates` koleksiyonu; antrenör üyeye atarken **kopya** alır ve
+düzenler (şablon değişmez, üyenin `programs` kaydı değişir); salon kendi
+şablonunu da kaydedebilir (`tenantId` dolu). **Yalnızca antrenör/salon
+atar**, üye seçemez. Kapsam: 6 başlık × 2 seviye (başlangıç/orta), ~12
+şablon: ısınma (genel, alt/üst vücut), yağ kaybı, core güçlendirme,
+sırt-omuz (masa başı), tam vücut başlangıç, alt/üst split. **Isınma her
+programın otomatik ön bloğu** (`Program.warmup[]`, antrenör kapatabilir);
+"Antrenmana başla" önce ısınmayı getirir.
+
+*Model gereksinimi — PER-17 ile aynı değişiklik:* `ProgramExercise`'a
+`type: 'weight' | 'time' | 'reps'` (+ `durationSeconds`), `restSeconds`,
+`cue` (kısa ipucu metni); `Program.days[]`. Bunlar olmadan ısınma
+yazılamaz (süre/vücut ağırlığı temelli, kg alanı anlamsız).
+
+*İçerik ilkeleri:* ACSM/NSCA/WHO kılavuzlarına dayanır, her şablon
+kaynağını taşır. **"Karın inceltme" yok** — bölgesel yağ yakımı için kanıt
+yok, "core güçlendirme" adıyla. **"Postür düzeltme" yok** — kanıt karışık,
+"sırt ve omuz güçlendirme" adıyla. Sertifikalı antrenör onayı: şablonlar
+Tarabya antrenörü gözden geçirmeden üretime alınmaz; uygulamada sağlık
+uyarısı ve "antrenörün uyarlaması gerekir" notu. Görsel/video yok — metin
+ipucu ile başlanır (telif), görsel sonra.
+
+*İçerik üretildi (2 Eylül 2026):* `program_templates.md` (13 şablon, 141
+egzersiz, kaynakçalı) + `marte06/scripts/program_templates.seed.json` +
+`marte06/scripts/seed_program_templates.cjs` (dry-run / `--apply`,
+idempotent). 3 ısınma (genel, alt, üst) + 5 başlık × 2 seviye. Seed,
+PER-17 model değişikliği ve `SCHEMA.md`'ye `program_templates` bölümü
+eklenmeden **çalıştırılmaz**. **Antrenör onayı bekliyor** — Tarabya
+antrenörü belgeyi gözden geçirmeden üretime alınmaz.
+
+**14. ~~UX-7 kalanı~~** — tamamlandı (1 Eylül 2026), on ekran.
 
 ### Kuşak 4 — borç ve temizlik
 
-**12. WEB-6 · Göç veri kalitesi.** Tek `name` alanında birden çok kişi olan
+**15. WEB-6 · Göç veri kalitesi.** Tek `name` alanında birden çok kişi olan
 kayıtlar. **Karar salon sahibinin**: ayrı üyeliklere bölünecek mi, yoksa
 bilinçli olarak böyle mi kalacak? Konuşulmadan kod yazılmamalı.
 
-**13. P3-3 · Kullanılmayan bağımlılıklar.** Dokuz paket. `expo-linking` ve
+**16. P3-3 · Kullanılmayan bağımlılıklar.** Dokuz paket. `expo-linking` ve
 `react-native-gesture-handler` **artık kullanılıyor** (LegalLinks, kaydırmalı
 satırlar) — liste yeniden doğrulanmalı, `npx expo-doctor` ile.
 
-**14. P5-1 · Test kapsamı.** Kural tarafı 175, mobil taraf 94 test
+**17. P5-1 · Test kapsamı.** Kural tarafı 175, mobil taraf 94 test
 (2 Eylül 2026). Kalan: bileşen/render testi hiç yok — `react-native`'i
 ayrıştırabilen bir kurulum gerektiriyor, ayrı bir iş.
 
-**15. P4-7 · i18n.** Tüm metinler koda gömülü. İhracat düşünülene kadar
+**18. P4-7 · i18n.** Tüm metinler koda gömülü. İhracat düşünülene kadar
 gerekmiyor; sıranın sonunda olmasının sebebi bu.
 
-**16. Üye profil fotoğrafı.** Storage yükleme akışı. MEMBER-5a'da ad/telefon/
+**19. Üye profil fotoğrafı.** Storage yükleme akışı. MEMBER-5a'da ad/telefon/
 doğum tarihi yapıldı, fotoğraf kaldı.
+
+### Kuyruk — sıraya girmemiş, karar verilmiş
+
+**P2 (değerli, engelleyici değil):** WORKOUT kalanı (13'e bkz.) · ölçüm
+formunda doğrudan sayı girişi + kalça/boy/yağ oranı (kilo 75'ten 0,5
+adımla başlıyor; 52 kg için 46 dokunuş) · üye kartında adı gizleme · ders
+açıklaması/seviyesi · üyenin kendi haftalık hedefi (`WEEKLY_TARGET = 4`
+sabit) · antrenman geçmişi listesi · antrenöre üyenin telefonu · antrenör
+prim takibi · gün içinde bölünmüş çalışma saati · "fazla" bulunanların
+sadeleştirilmesi (takvim paylaşımını çok antrenörlü salona sakla,
+`trainer/programs` sekmesini `trainer/index` filtresine indir, tema modunu
+üyeye bırak, `member/workout` sekmesini program atanınca göster).
+
+**P3 (uzak ufuk):** **cinsiyet alanı + kadın antrenör filtresi + kadınlara
+özel ders/saat** — *karar (kullanıcı, 2 Eylül 2026): şimdilik hayır; Tarabya
+için gerekmiyor, ikinci salon isterse yeniden değerlendirilir* · çoklu şube
+· uygulama içi tahsilat (iyzico/POS) + e-fatura · acil durum/sağlık beyanı
+· vardiya ve personel yönetimi.
 
 ---
 
@@ -3650,6 +3812,59 @@ Sırayla; T1–T3 bitmeden T14 (deploy) yapılmaz.
   - **Simülatörde reload ile teyit edilmedi** — kullanıcı isteğiyle sona ertelendi (T14'ün simülatör doğrulama adımına dahil).
 - [ ] **T14 (P1, human: ~1s / CC: ~15dk)** — deploy — T1–T9 bittikten SONRA: 8 fonksiyon + kurallar + indexler deploy, ardından simülatörde PKG-1→8 uçtan uca doğrulama
   - Kaynak: F1. **Production deploy — kullanıcı onayı zorunlu.**
+
+## PER — Persona kullanım testi (2 Eylül 2026)
+
+Dört persona (salon sahibi, antrenör, kadın üye, erkek üye) ile 53 ekranın
+tamamı, gerçek kullanıcının izleyeceği sırayla gezildi. Tam rapor, adım
+adım turlar, "fazla bulunanlar" ve 40 maddelik talep listesi:
+**`personatalepleri.md`**. Buradaki maddeler o rapordan plana alınanlar;
+numaralar raporun kendi kodlarından (H/D/Z/B) bağımsız, plan içi sıradır.
+
+**Yöntem sınırı:** kod düzeyinde akış takibi, canlı cihaz turu değil.
+Bulguların hepsi kodun kesin yaptığı şeyler (ölü buton, okunmayan alan,
+eksik ekran); algısal bulgular (yavaşlık, okunabilirlik) bu turda yok.
+
+**Kullanıcı kararları (2 Eylül 2026):**
+- Kotalı grup dersi paketi **satılacak** → PER-9 Kuşak 2.
+- Cinsiyet alanı / kadın antrenör filtresi / kadınlara özel saat →
+  **şimdilik hayır**, P3 kuyruğu.
+- Grup dersinde antrenör **tam yetki** → PER-8 kapsamı geniş.
+- Üyelerin çoğu PT/grup, ağırlıkçı azınlık → PER-17 iki parçaya indirildi.
+- Hazır program şablonları **eklenecek** (PER-18): ortak kütüphane + salon
+  kopyası, ısınma otomatik ön blok, 6 başlık × 2 seviye, yalnızca
+  antrenör/salon atar.
+
+Raporun plan.md'yle çelişen iki bulgusu bağlamla düzeltildi: kotalı grup
+dersi "satılan özellik çalışmıyor" değil, PKG-4'ün bilinçli sınırıydı
+(karar onu şimdi gerçek eksik yaptı); "borçlular / yaklaşan bitişler"
+zaten PKG-12'nin içindeydi, yeni madde açılmadı.
+
+| # | Madde | Kuşak | Kaynak |
+|---|---|---|---|
+| [ ] PER-1 | `pending.tsx` ölü "Salonu ara" butonu (+ onay bekleyenin salon telefonunu okuyamaması) | 1.5 | Z-9 |
+| [ ] PER-2 | Şifremi unuttum akışı | 1.5 | Z-5 |
+| [ ] PER-3 | Kayıtta KVKK / şartlar onayı | 1.5 | Z-6 |
+| [ ] PER-4 | `reps` antrenman ekranında gösterilmiyor (hata) | 1.5 | B-4 |
+| [ ] PER-5 | "Tümünü onayla" limit dolunca N kez paywall (hata) | 1.5 | H-7 |
+| [ ] PER-6 | Antrenör randevusunda çakışma kontrolü yok (veri bütünlüğü) | 1.5 | D-4 |
+| [ ] PER-7 | Antrenöre üyenin paketi + kalan hakkı | 2 | D-1 |
+| [ ] PER-8 | Grup dersi antrenöre açılır: `trainerId`, katılımcı listesi, yoklama, "Derslerim" | 2 | D-2, H-5 |
+| [ ] PER-9 | Kotalı grup dersi rezervasyon callable'ı | 2 | Z-2 |
+| [ ] PER-10 | Seri ders — PKG-9 ile tek iş | 2 | H-4 |
+| [ ] PER-11 | İptal metni sabit "24 saat" → `cancellationHours`'tan (PKG-11 içinde) | 2 | Z-8 |
+| [ ] PER-12 | Admin üye listesinde arama + filtre + sayfalama | 2 | H-6 |
+| [ ] PER-13 | Ders/randevu hatırlatıcısı (P4-3 ile birlikte) | 3 | Z-3 |
+| [ ] PER-14 | No-show durumu, antrenör izin günü, üye notu | 3 | D-5, D-6, D-3 |
+| [ ] PER-15 | Üyeden yenileme talebi | 3 | Z-7 |
+| [ ] PER-16 | Duyuru / toplu bildirim (+ promosyonun üyeye görünmesi) | 3 | H-10 |
+| [ ] PER-17 | WORKOUT: çok günlü program + "geçen sefer" | 3 | B-1, B-3 |
+| [ ] PER-18 | Hazır program şablonları (ortak kütüphane + ısınma ön bloğu) — PER-17 ile tek iş | 3 | kullanıcı isteği |
+
+Kuyruğa yazılanlar (P2/P3) "KALAN İŞLER → Kuyruk" altında; ayrı madde
+açılmadı, karar verildiğinde açılır.
+
+---
 
 ## GSTACK REVIEW REPORT
 
