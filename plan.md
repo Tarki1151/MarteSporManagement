@@ -162,8 +162,15 @@ haftalık program yazmaya değer mi", tarih bunu söylemiyor. Salt okunur; paket
 atamak yönetici işi. *Kural değişikliği gerekmedi* — `member_packages` ve
 `member_credits` zaten `isTenantStaff`'a açıkmış, ekran hiç sormamış.
 
-**5b. PER-8 · Grup dersi antrenöre kapalı; derse kimin kayıtlı olduğu
-hiçbir ekranda yok.** Ders programı yalnızca `canManageGym` ekranında;
+**5b. [x] PER-8 · Grup dersi antrenöre açıldı** *(3 Eylül 2026 — deploy
+edildi, simülatörde uçtan uca doğrulandı: kendi dersleri listelendi,
+katılımcı adı göründü, yoklama Firestore'a yazıldı).* `ClassSession.trainerId`
++ `attendance`, antrenör "Dersler" sekmesi, 9 kural testi (189 → 198), mevcut
+4 ders `backfill_class_trainer_id.cjs` ile birebir isim eşleşmesiyle
+dolduruldu. Yoklama üç durumlu — "işaretlenmedi" ile "gelmedi" ayrı kalıyor
+ki raporlama yoklama alınmamış dersi "herkes gelmemiş" saymasın.
+
+*Özgün madde:* Ders programı yalnızca `canManageGym` ekranında;
 `ClassSession.trainerName` serbest metin, antrenörün `userId`'sine bağlı
 değil — "benim derslerim" sorgusu bile yazılamıyor. Ders satırı "3/10 dolu"
 diyor, isim listesi ve yoklama yok. **Karar (kullanıcı, 2 Eylül 2026):
@@ -173,7 +180,16 @@ katılımcıyı görür, yoklama alır. Kapsam: `ClassSession.trainerId` +
 (antrenör yalnızca `trainerId == uid` olan dersleri yazar), antrenör
 "Derslerim" sekmesi, admin ders satırından katılımcı listesi.
 
-**5c. PER-9 · Kotalı grup dersi rezervasyonu.** PKG-4 bunu bilerek yarım
+**5c. [x] PER-9 · Kotalı grup dersi rezervasyonu** *(3 Eylül 2026 — deploy
+edildi).* `bookGroupClass` / `cancelGroupClassBooking` callable'ları; kredi
+en erken bitenden harcanıyor ve yalnızca dersin tarihinden sonra dolan bir
+kredi kullanılıyor. **Dolu ders bekleme listesine alıyor ve hiçbir şey
+harcamıyor** — yer henüz yok. İptal iadesi salonun `cancellationHours`
+değerine göre. *Sınırsız haklar mevcut doğrudan yazma yolunda bırakıldı:*
+o yol üretimde çalışıyor, doğrulamadan oraya dokunmak bir dikişi toparlamak
+için çalışan akışı riske atmak olurdu — birleştirme PKG-11'e ait.
+
+*Özgün madde:* PKG-4 bunu bilerek yarım
 bırakmıştı ("varsayılan şablonda yok, admin açarsa üye 'yakında' görür").
 **Karar (kullanıcı, 2 Eylül 2026): kotalı paket satılacak** — yani dal artık
 üretimde erişilir olacak ve bugünkü hâliyle satılan paket kullanılamaz.
@@ -182,7 +198,21 @@ dizisine yazar, dolu ise bekleme listesi; iptal `cancelGroupClassBooking`
 ile PKG-11 eşiğine göre iade. `classes.tsx:33` `canJoinGroupClass` kotalı
 dalı açar.
 
-**6. PER-10 + PKG-9 · Seri ders ve seri randevu — tek iş.** Grup dersi
+**6. [~] PER-10 · Seri ders** *(3 Eylül 2026 — simülatörde doğrulandı: 4
+haftalık seri tam 7 gün arayla, ortak `seriesId` ile oluştu).* Ders formunda
+TEKRAR seçimi (tek sefer / 4 / 8 / 12 hafta), tek `writeBatch` ile hepsi ya
+da hiçbiri — yarım seri hiç olmamasından kötü, üyeler delikli bir program
+görür ve eksik haftaların iptal mi edilmediği yoksa hiç oluşturulmadığı mı
+anlaşılmaz. Seri iptali yalnızca ileriye.
+
+⚠️ **Kalan:** seri iptalinin arayüz akışı (kaydır → İptal et → "bu ve
+sonrakiler") simülatörde tetiklenemedi — tap isabet etmedi, kod yolu
+yazıldı ve tip kontrolünden geçti ama **çalışırken görülmedi**. Ayrıca
+**PKG-9 (seri PT randevusu) yapılmadı**: `bookPtSessions` zaten `slots: Date[]`
+alıyor, yani sunucu tarafı hazır; eksik olan antrenör takviminde haftalık
+tarihleri üretip diziyi göndermek.
+
+*Özgün madde:* Grup dersi
 bugün tek seferlik kayıt: haftada 20 dersi olan salon 3 aylık programı için
 ~240 kayıt giriyor. "Her Salı 19:00, 12 hafta" ile PKG-9'un "her Cuma 08:00,
 8 hafta"sı aynı desen (`seriesId` + toplu oluştur + seriyi topluca

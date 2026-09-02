@@ -239,6 +239,8 @@ kapsamında.
 | `waitlistUserIds` | string[] |
 | `trainerId` | string? | Dersi veren antrenörün uid'si (PER-8) |
 | `attendance` | map? | `{uid: 'present' \| 'absent'}` (PER-8) |
+| `seriesId` | string? | Tekrarlayan dersin oluşumlarını bağlar (PER-10) |
+| `bookingCredits` | map? | `{uid: creditId}` — kotalı rezervasyonu hangi kredinin ödediği (PER-9) |
 
 **Kurallar:** okuma **ve** yazma salona aktif üyelik gerektirir
 (`isTenantMember`) — çapraz kiracı sızıntısı kapatıldı. Yazma = kiracı
@@ -271,6 +273,21 @@ meslektaşa devretmenin yolu olmamalı. Devretmek yönetici işi.
 ile aynı şey değil. "Kimse yoklama almadı" ile "gelmedi" farklı olgular;
 ikisini birleştiren bir rapor yalan söyler. Yoklama alınmamış bir dersi
 "herkes gelmemiş" diye saymamak için raporlama bu ayrımı korumalı.
+
+**Tekrarlayan ders (PER-10).** `seriesId` oluşumları birbirine bağlar.
+Oluşumlar **ayrı dokümanlar** olarak kalır, tek bir tekrar kuralı olarak
+değil: bir hafta tek başına iptal edilir, taşınır ya da dolar, ve
+kural+istisna modeli her okumada "bu hafta gerçek mi?" sorusunu cevaplamak
+zorunda kalır. Kimlik yalnızca "dönemin kalanını iptal et" ifade edilebilsin
+diye var. Seri iptali **yalnızca ileriye** çalışır — geçmiş oluşumlar
+yaşandı, silmek yoklamalarını da götürürdü.
+
+**Kotalı rezervasyon (PER-9).** `bookingCredits` hangi kredinin hangi yeri
+ödediğini tutar, böylece iptal aynı krediyi geri verir — üyenin o anki
+bakiyesine bakıp tahmin etmez. Kotalı rezervasyon ve iptal `bookGroupClass` /
+`cancelGroupClassBooking` callable'larından geçer; krediyi düşürmek ve yeri
+almak tek atomik adım olmalı ve kurallar aritmetik yapamaz. **Sınırsız**
+haklar mevcut doğrudan istemci yazımında kalır (bkz. `classes` kuralları).
 
 ---
 
