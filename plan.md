@@ -148,7 +148,7 @@ antrenör oluşturmasını da callable'a taşı (`consumeCredit: false` bayrağ�
 ### Kuşak 2 — salon sahibinin ve antrenörün günlük soruları
 
 *Durum (3 Eylül 2026):* **5, 5a, 5b, 5c ve 7a tamamlandı**, 6 kısmen.
-Kalan: **7 (dondurma/iade)** — kullanıcı kararı bekliyor.
+Kalan: **7e (dondurma)** — 7b/7c/7d tamamlandı.
 
 *Sıra değişikliği ve gerekçesi:* ders kümesi (PER-8 → PER-9 → PER-10)
 raporlamanın önüne alındı. Üçü de `ClassSession`'a dokunuyor — ayrı ayrı
@@ -276,7 +276,9 @@ bakamayacağı bir eşikten hesap yaptırıyordu. Artık onay metni koşul deği
 **sonuç** söylüyor ve `tenants.cancellationHours` Salon ekranından
 seçiliyor (6/12/24/48). Kredisi olmayan randevuda iade sözü hiç verilmiyor.
 
-**7c. Paket iptalinde erişim seçimi.** *(Kullanıcı isteği.)* Bugün
+**7c. [x] Paket iptalinde erişim seçimi** *(3 Eylül 2026 — deploy edildi,
+uçtan uca doğrulandı: paket sonlandırıldı, hak önbelleği durdu, üye
+girişi korundu).* *(Kullanıcı isteği.)* Bugün
 `cancelPackageAssignment` yalnızca "yanlışlıkla atadım" için: paketi anında
 `cancelled` yapıyor, kredileri iptal ediyor, hak önbelleği siliniyor — kapı
 o saniye kapanıyor, seçim yok. Yönetici seçebilmeli:
@@ -287,8 +289,8 @@ o saniye kapanıyor, seçim yok. Yönetici seçebilmeli:
 Yaklaşan randevu engeli ("önce randevuları iptal edin") yalnızca ikinci
 seçenek için anlamlı; birincide randevular geçerli kalmalı.
 
-**7d. İptal son tarihi ve devamsızlık.** *(Kullanıcı politikası,
-3 Eylül 2026.)* Üye en geç **2 saat** kala iptal etmezse randevuya
+**7d. [x] İptal son tarihi ve devamsızlık** *(3 Eylül 2026 — deploy edildi,
+simülatörde doğrulandı).* *(Kullanıcı politikası.)* Üye en geç **2 saat** kala iptal etmezse randevuya
 katılmış sayılır ve hakkı yanar. **Günün ilk 2 saatindeki dersler için son
 tarih bir gün öncesi** — 07:00 dersini 05:00'te iptal ettirmek politika
 değil tuzak.
@@ -298,7 +300,7 @@ Bunun düz bir saat sayısıyla ifade edilemeyeceğine dikkat: eşik artık bir
 saati" oradan türetilebilir; salon saatlerini girmemişse sabit bir saate
 düşülür.
 
-⚠️ **İki gerçek boşluk — bu madde onlarsız yarım kalır:**
+**Kapatılan iki boşluk:**
 
 1. **Antrenör/yönetici iptali koşulsuz iade ediyor.** `sessions.ts`'te
    `shouldRefund = isTrainer || isAdmin`. Yani üye gelmediğinde antrenörün
