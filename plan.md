@@ -147,8 +147,8 @@ antrenör oluşturmasını da callable'a taşı (`consumeCredit: false` bayrağ�
 
 ### Kuşak 2 — salon sahibinin ve antrenörün günlük soruları
 
-*Durum (3 Eylül 2026):* **5a, 5b, 5c ve 7a tamamlandı**, 6 kısmen. Kalan:
-**5 (raporlama)** ve **7 (dondurma/iade)**.
+*Durum (3 Eylül 2026):* **5, 5a, 5b, 5c ve 7a tamamlandı**, 6 kısmen.
+Kalan: **7 (dondurma/iade)** — kullanıcı kararı bekliyor.
 
 *Sıra değişikliği ve gerekçesi:* ders kümesi (PER-8 → PER-9 → PER-10)
 raporlamanın önüne alındı. Üçü de `ClassSession`'a dokunuyor — ayrı ayrı
@@ -156,7 +156,40 @@ yapılsa üç şema göçü, üç kural turu, üç deploy olurdu. Ayrıca raporl
 istediği **katılım oranı** PER-8'in eklediği `attendance` verisine bağlı;
 önce raporlama yapılsaydı o kart eksik doğardı.
 
-**5. P4-5 + PKG-12 · Raporlama.** Aylık gelir, katılım oranı, aktif üye
+**5. [x] P4-5 + PKG-12 · Raporlama** *(3 Eylül 2026 — `/admin/reports`,
+simülatörde doğrulandı).* Altı kart, iki bölüm: **şimdi ilgilenilecekler**
+(bekleyen ödeme · 14 günde biten paket · geçerli paketi olmayanlar) ve
+**gidişat** (aylık gelir · yeni üye · grup dersi katılımı). Her kart bir
+isim listesine iniyor ve satırlar üye detayına gidiyor — yüzdeyle biten bir
+rapor sahibi yine üye listesine gönderirdi.
+
+Üç karar kayda değer:
+
+- **Katılım oranı yalnızca yoklaması alınmış derslerden.** Yoklamasız ders
+  oranın dışında ve sayısı ayrıca yazılıyor. "İşaretlenmedi" ile "gelmedi"
+  farklı olgular; birleştiren rapor bir antrenörlük sorununu bir devamsızlık
+  sorunu gibi gösterir. PER-8'in üç durumlu yoklaması tam da bunun için.
+- **"Geçerli paketi olmayanlar" bir borç listesi değil.** Uygulama borç
+  tutmuyor — para uygulama dışında el değiştiriyor, vade kavramı yok.
+  Söylenebilecek dürüst şey: şu an ödenmiş bir paketi olmayan aktif üyeler.
+  Sahibin elle yazacağı liste de bu.
+- **Süre `endsAt`'ten okunuyor, `status`'tan değil.** PKG-12'nin günlük
+  süpürmesi hâlâ yok; temmuzda bitmiş paket hâlâ `active` görünüyor.
+  `status`'e göre filtrelemek raporun aradığı satırları gizlerdi.
+
+Yol boyunca çıkan üç hata da düzeltildi: kartlar veri gelmeden "bekleyen
+ödeme yok" / "paketi yok" diye kesin ifade kuruyordu (yükleniyor ile boş
+sonuç aynı gösteriliyordu); düşen dinleyici sonsuz "yükleniyor" bırakıyordu;
+`MiniBarChart` altı boş ayı altı dolu çubuk çizip vurgulanan son çubukla
+"iyi bir eylül" gibi gösteriyordu (sıfır tabanı eklendi).
+
+**Kalan:** *filtreler* (paketi biten / borçlu / yeni) üye listesine
+bağlanmadı — rapor onları türetiyor ama liste ekranı hâlâ yalnızca arama ve
+alfabetik sıra biliyor. Sunucu tarafı toplama (aggregate) yok: ekran salonun
+paketlerini 1000'lik bir tavanla çekiyor, yüzlerce üyeli salon için yeterli,
+binlercesi için değil.
+
+*Özgün madde:* Aylık gelir, katılım oranı, aktif üye
 trendi, yaklaşan paket bitişleri, ödeme yapmayanlar. Panel bugün dört sayı
 gösteriyor; sahibin ikinci sorusuna cevabı yok. ADMIN-5 de buraya katlanıyor.
 *Persona testi (Hakan) öncelik gerekçesini pekiştirdi: "kimin parası
@@ -270,11 +303,45 @@ başladı" — uygulamada duyuru kavramı yok; promosyon üyeye hiç görünmüy
 `announcements` koleksiyonu + push + ana ekranda kart. Promosyonların üyeye
 görünür kampanyaya dönüşmesi de buraya bağlanır.
 
-**12. P1-8 + P4-6 · Çoklu salon üyeliği.** Kurallar ve veri modeli destekliyor,
+**12. PER-20 · Üye profili: boy, kilo ve fotoğraf.** *(Kullanıcı isteği,
+3 Eylül 2026.)* Profilde boy ve kilo görünmüyor, üye kendi fotoğrafını
+ekleyemiyor.
+
+**Boy ayrı bir alan, ölçüm değil.** Kilo `measurements` içinde ve zaman
+serisi olması gerekiyor; boy yetişkinde sabit ve her ölçüme kopyalanırsa
+grafiği kirletir. Boy `tenant_memberships.heightCm`'e, kilo profilde **en
+son ölçümden** okunur — profilde ikinci bir kilo alanı açmak iki doğruluk
+kaynağı yaratır ve hangisinin güncel olduğu belirsizleşir. İkisi birlikte
+VKİ'yi de verir.
+
+**Fotoğraf: kırp, küçült, aslını bırakma.**
+- `expo-image-picker` `allowsEditing` ile kare kırpma (yerel arayüz).
+- `expo-image-manipulator` ile **512×512, JPEG q0.8**'e indirilir. Bir
+  avatar için gereken bu; ham kamera karesi 3–5 MB ve o boyutu taşımanın
+  ne kullanıcıya ne salona faydası var.
+- Yüklendikten sonra hem seçicinin önbellek kopyası hem de dönüştürülmüş
+  ara dosya `expo-file-system` ile silinir. Kullanıcının seçtiği tam
+  çözünürlüklü kare cihazın uygulama önbelleğinde kalmamalı.
+- Yol `members/{uid}/avatar.jpg` — deterministik, yeni yükleme eskisinin
+  üzerine yazar, yetim dosya birikmez.
+
+⚠️ **Storage okuma kuralı bugünkü hâliyle yetmiyor.** `members/{uid}/**`
+okumayı `uid == request.auth.uid || isAdmin()` ile sınırlıyor; `isAdmin()`
+küresel claim ve **GymEntra'da geçerli değil** (P1-6). Yani üye listesinde
+avatarı ne antrenör ne salon yöneticisi görebilir. Kural, logo kuralındaki
+`isGymEntraTenantAdmin` deseniyle "aynı salonun personeli" olacak şekilde
+genişletilmeli. Bu, işin kural tarafındaki asıl işi.
+
+**KVKK:** fotoğraf kişisel veri. Aydınlatma metnine eklenmeli ve
+`removeMemberFromTenant` / `deleteMyAccount` cascade listesine Storage
+nesnesinin silinmesi girmeli — bugün o listeler yalnızca Firestore
+dokümanlarını temizliyor.
+
+**13. P1-8 + P4-6 · Çoklu salon üyeliği.** Kurallar ve veri modeli destekliyor,
 istemci ilk aktif üyeliği alıp gerisini yok sayıyor. İki salona üye olan kişi
 ikincisine hiç erişemiyor.
 
-**13. PER-17 · WORKOUT — antrenman derinliği (kısaltılmış kapsam).**
+**14. PER-17 · WORKOUT — antrenman derinliği (kısaltılmış kapsam).**
 *Model değişikliği yapılırken `ProgramExercise.exerciseId` de eklenmeli —
 PER-19'un anlatım bağı bugün isim string'i üzerinden kuruluyor ve antrenör
 ismi düzenlerse sessizce kopuyor.*
@@ -405,31 +472,28 @@ gerçek antrenör onayı beklenmedi;* antrenör personası incelemesi yapıldı,
 "Antrenör personası incelemesi" bölümü. Gerçek antrenör onayı ekipman
 listesi ve Türkçe hareket adları için hâlâ önerilir.
 
-**14. ~~UX-7 kalanı~~** — tamamlandı (1 Eylül 2026), on ekran.
+**15. ~~UX-7 kalanı~~** — tamamlandı (1 Eylül 2026), on ekran.
 
 ### Kuşak 4 — borç ve temizlik
 
-**15. WEB-6 · Göç veri kalitesi.** Tek `name` alanında birden çok kişi olan
+**16. WEB-6 · Göç veri kalitesi.** Tek `name` alanında birden çok kişi olan
 kayıtlar. **Karar salon sahibinin**: ayrı üyeliklere bölünecek mi, yoksa
 bilinçli olarak böyle mi kalacak? Konuşulmadan kod yazılmamalı.
 
-**16. P3-3 · Kullanılmayan bağımlılıklar.** Dokuz paket. `expo-linking` ve
+**17. P3-3 · Kullanılmayan bağımlılıklar.** Dokuz paket. `expo-linking` ve
 `react-native-gesture-handler` **artık kullanılıyor** (LegalLinks, kaydırmalı
 satırlar) — liste yeniden doğrulanmalı, `npx expo-doctor` ile.
 
-**17. P5-1 · Test kapsamı.** Kural tarafı 175, mobil taraf 94 test
+**18. P5-1 · Test kapsamı.** Kural tarafı 175, mobil taraf 94 test
 (2 Eylül 2026). Kalan: bileşen/render testi hiç yok — `react-native`'i
 ayrıştırabilen bir kurulum gerektiriyor, ayrı bir iş.
 
-**18. P4-7 · i18n.** Tüm metinler koda gömülü. İhracat düşünülene kadar
+**19. P4-7 · i18n.** Tüm metinler koda gömülü. İhracat düşünülene kadar
 gerekmiyor; sıranın sonunda olmasının sebebi bu.
-
-**19. Üye profil fotoğrafı.** Storage yükleme akışı. MEMBER-5a'da ad/telefon/
-doğum tarihi yapıldı, fotoğraf kaldı.
 
 ### Kuyruk — sıraya girmemiş, karar verilmiş
 
-**P2 (değerli, engelleyici değil):** WORKOUT kalanı (13'e bkz.) · ölçüm
+**P2 (değerli, engelleyici değil):** WORKOUT kalanı (14'e bkz.) · ölçüm
 formunda doğrudan sayı girişi + kalça/boy/yağ oranı (kilo 75'ten 0,5
 adımla başlıyor; 52 kg için 46 dokunuş) · üye kartında adı gizleme · ders
 açıklaması/seviyesi · üyenin kendi haftalık hedefi (`WEEKLY_TARGET = 4`
