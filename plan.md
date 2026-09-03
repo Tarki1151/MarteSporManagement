@@ -357,6 +357,18 @@ kapsamlı sorgularıyla birlikte.
 
 ### Kuşak 3 — üye derinliği ve ölçeklenince acıtanlar
 
+**[x] Salon logosu uygulama içinde + yönetici atama (3 sınırı)** *(3 Eylül
+2026, kullanıcı isteği — deploy edildi).* Logo yalnızca sahibin ayar
+ekranındaki yükleme düğmesinde çiziliyordu. `GymLogo` (expo-image, disk
+önbelleği: üye kartı kapıda çevrimdışı çalışır; logosuz salon eski harf
+avatarını alır) yükleme kapısı, üç rolün ana ekranı, üye kartı, salon
+karekodu, kodla katılım onayı ve SALONUM kartında. Kuruluşta da logo
+seçiliyor. Ekip ekranında YÖNETİCİLER bölümü, "Yönetici yap/al", 3/3
+sayacı; `tenants.activeAdminCount` sunucu sahipli, `withinAdminLimit`
+kural kapısı, backfill uygulandı. Kurucu korunmaz, herkes eşit.
+*Uygulama ikonu build-time — kapsam dışı (önceki karar).*
+
+
 **8. [x] P4-3 + PER-13 · Bildirim tercihleri ve ders hatırlatıcısı**
 *(3 Eylül 2026 — deploy edildi).* Beş kategori (`bookings`, `packages`,
 `payments`, `programs`, `account`), üç rolün de profil ekranında aynı
