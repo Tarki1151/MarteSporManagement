@@ -388,10 +388,9 @@ başına iş kurmuyor: rezervasyon iptal edilince iptal edilmesi, ders
 kayınca yeniden kurulması ve her deploy sonrası uzlaştırılması gerekirdi.
 `reminderSentAt` mükerrer gönderimi engelliyor.
 
-⚠️ **Tercih ekranı simülatörde görülemedi** — Expo Go yeni bundle'a
-bağlanmayı reddetti, üç Metro yeniden başlatması da işe yaramadı. Kod tip
-kontrolünden ve lint'ten geçti, üç ekrana bağlı, ama **çalışırken
-görülmedi**. Build 19'da telefonda doğrulanmalı.
+Tercih ekranı simülatörde doğrulandı (Expo Go'yu kapatıp yeniden açmak
+gerekti — `open_url` bayat bundle'ı yenilemiyor; not: `xcrun simctl
+terminate booted host.exp.Exponent`, sonra `openurl`).
 
 *Özgün madde:*
 Push açık/kapalı ve kategori bazlı tercih yok; sunucuda 11 bildirim var,
