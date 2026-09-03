@@ -357,7 +357,31 @@ kapsamlı sorgularıyla birlikte.
 
 ### Kuşak 3 — üye derinliği ve ölçeklenince acıtanlar
 
-**8. P4-3 + PER-13 · Bildirim tercihleri ve ders hatırlatıcısı — birlikte.**
+**8. [x] P4-3 + PER-13 · Bildirim tercihleri ve ders hatırlatıcısı**
+*(3 Eylül 2026 — deploy edildi).* Beş kategori (`bookings`, `packages`,
+`payments`, `programs`, `account`), üç rolün de profil ekranında aynı
+bileşen — tercih kişiye ait, o an taşıdığı role değil.
+
+`account` (ebeveyn onayı, katılım isteği) **kapatılamıyor**: bunlar
+bildirim değil, tamamlanması gereken akış adımları; susturulursa akış
+bitmiyor. Sunucu da zorluyor, o kategori tercihleri hiç okumuyor.
+
+`sendPushToUser`'da kategori **zorunlu**: yeni bir gönderim yeri ne
+olduğunu söylemek zorunda, yoksa kapatılamaz hâle gelir ve tercih ekranı
+kontrol ettiği şey hakkında yalan söylemeye başlar. 17 çağrı noktası
+tek tek işaretlendi.
+
+Hatırlatıcı 15 dakikada bir kısa bir pencereyi tarıyor, rezervasyon
+başına iş kurmuyor: rezervasyon iptal edilince iptal edilmesi, ders
+kayınca yeniden kurulması ve her deploy sonrası uzlaştırılması gerekirdi.
+`reminderSentAt` mükerrer gönderimi engelliyor.
+
+⚠️ **Tercih ekranı simülatörde görülemedi** — Expo Go yeni bundle'a
+bağlanmayı reddetti, üç Metro yeniden başlatması da işe yaramadı. Kod tip
+kontrolünden ve lint'ten geçti, üç ekrana bağlı, ama **çalışırken
+görülmedi**. Build 19'da telefonda doğrulanmalı.
+
+*Özgün madde:*
 Push açık/kapalı ve kategori bazlı tercih yok; sunucuda 11 bildirim var,
 hiçbiri "dersin 1 saat sonra" demiyor. Hatırlatıcı bildirim sayısını
 artırıyor; susturma yolu olmadan eklenmez. Önce tercih, sonra hatırlatıcı,
