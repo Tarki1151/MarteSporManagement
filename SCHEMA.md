@@ -112,6 +112,7 @@ düz değer olarak kopyalanır.
 | `ownerUid` | string | Oluşturan kullanıcı; create'te `auth.uid`'e kilitli, sonra değişmez |
 | `address` | string? | Katılım akışında gösterilir; herkese açık olması bilinçli |
 | `cancellationHours` | number? | PT randevu iptalinde kredi iadesi sınırı — yoksa varsayılan 24. Henüz yönetici ayarları ekranı yok, alan elle/backfill ile yazılır (PKG-11, Faz 1.9) |
+| `activeMemberCount` / `activeAdminCount` | number | **Sunucu sahipli.** `syncActiveMemberCount` her üyelik yazımında yeniden sayar, `reconcileMirrors` haftalık düzeltir. Kurallar sayamaz, bu yüzden ücretsiz kademe sınırı (`activeMemberCount`) ve **3 yönetici sınırı** (`activeAdminCount`, `withinAdminLimit`) buradan okunur. Eksik sayaç "sınırın altında" okunur — eski salon kilitlenmez; `scripts/backfill_active_admin_count.cjs` gerçek sayıyı bir kez yazar |
 
 | `createdAt` / `updatedAt` | Timestamp | |
 
@@ -180,7 +181,11 @@ kiracıyı yeni kuran `ownerUid` kendine `roles: ['admin']`/`active` verebilir.
 Update = dört ayrı yol:
 1. **Yönetici**: yalnızca `status`, `approvedAt`, `roles`, `permissions` —
    ayrıca **yönetici kendi `admin` rolünü düşüremez** (salonu yönetimsiz
-   bırakmasın).
+   bırakmasın). **`admin` rolü VERMEK `tenants.activeAdminCount < 3` ister**
+   (`withinAdminLimit`); sınır yalnızca rolü veren yazımda çalışır — zaten
+   yönetici olan birinin başka bir alanı düzenlenirken ya da yöneticiliği
+   alınırken sınır bakılmaz. Kurucu korunmaz: herkes eşit (karar,
+   3 Eylül 2026).
 2. **Kişinin kendisi — ayrılma**: `active` → `left`, yalnızca `status` ve
    `leftAt`. Yöneticiler hariç (salonun son yöneticisi olabilir).
 3. **Kişinin kendisi — yeniden başvuru (P0-6)**: `left`/`rejected` →
@@ -841,7 +846,7 @@ ve `payments` için ikinci (legacy) match bloğu.
 | `expirePendingPackageChangeRequests` | zamanlanmış (günlük, 24 saat) | Süresi geçen bekleyen teklifleri `expired` yapar (PKG-6) |
 | `syncMemberEntitlements` | `member_packages` yazım | `member_entitlements` önbelleğini günceller — `classes` rezervasyon kuralının tek okumada kontrol edebilmesi için (PKG-4) |
 | `syncTrainerBusySlots` | `pt_sessions` yazım (create/update/delete) | `trainer_busy_slots` aynasını senkronlar — kimlik alanları olmadan (PKG-7/8) |
-| `reconcileMirrors` | zamanlanmış (haftalık, pazartesi 03:00) | 4 aynayı (`tenants.activeMemberCount`, `gym_packages.activeAssignmentCount`, `member_entitlements`, `trainer_busy_slots`) kaynağından yeniden türetip sapmayı düzeltir — trigger'lar hiç tetiklenmezse tek güvence budur (Faz 2.3) |
+| `reconcileMirrors` | zamanlanmış (haftalık, pazartesi 03:00) | 5 aynayı (`tenants.activeMemberCount`, `tenants.activeAdminCount`, `gym_packages.activeAssignmentCount`, `member_entitlements`, `trainer_busy_slots`) kaynağından yeniden türetip sapmayı düzeltir — trigger'lar hiç tetiklenmezse tek güvence budur (Faz 2.3) |
 | `bookPtSessions` | onCall | Üyenin kendi randevusunu alması: müsaitlik + çakışma + kredi yeterliliğini tek transaction'da doğrular, en erken bitecek krediden başlayarak düşer, `pt_sessions` dokümanlarını `creditId` ile yazar (PKG-8) |
 | `cancelPtSession` | onCall | Randevu iptali + kredi iade kararı: antrenör/admin her zaman iade, üye yalnızca `cancellationHours` öncesinde iade (PKG-11, Faz 1.9) |
 
