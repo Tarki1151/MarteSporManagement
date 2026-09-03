@@ -260,13 +260,82 @@ bugün tek seferlik kayıt: haftada 20 dersi olan salon 3 aylık programı için
 8 hafta"sı aynı desen (`seriesId` + toplu oluştur + seriyi topluca
 iptal/ertele). Ayrı yapılırsa iki farklı tekrar modeli çıkar; birlikte.
 
-**7. PKG-10 + PKG-11 · Dondurma ve iade politikası.** İkisi aynı soruyu
+**7. PKG-10 + PKG-11 · Dondurma, iptal ve erişim politikası.**
+
+**Kapsam kararı (kullanıcı, 3 Eylül 2026): para bu işin dışında.** Banka
+ya da kart erişimimiz yok, `payments` resmî geçerliliği olmayan bir defter.
+Uygulama ₺ iadesi hakkında **söz vermez** — o, salon ile üye arasında
+uygulama dışında konuşulur. Uygulamanın gerçekten zorladığı iki şey var ve
+kapsam yalnızca onlar: **ders hakkı** (`member_credits.used`) ve
+**salona giriş** (`member_entitlements`).
+
+**7b. [x] PER-11 · İptal eşiği salonun ayarı oldu** *(3 Eylül 2026).*
+Ekranlar "24 saatten az kaldıysa iade edilmeyebilir" diyordu — sayı koda
+gömülüydü (48 saat ayarlayan salonun üyesine yanlış kural) ve üyeye
+bakamayacağı bir eşikten hesap yaptırıyordu. Artık onay metni koşul değil
+**sonuç** söylüyor ve `tenants.cancellationHours` Salon ekranından
+seçiliyor (6/12/24/48). Kredisi olmayan randevuda iade sözü hiç verilmiyor.
+
+**7c. Paket iptalinde erişim seçimi.** *(Kullanıcı isteği.)* Bugün
+`cancelPackageAssignment` yalnızca "yanlışlıkla atadım" için: paketi anında
+`cancelled` yapıyor, kredileri iptal ediyor, hak önbelleği siliniyor — kapı
+o saniye kapanıyor, seçim yok. Yönetici seçebilmeli:
+- **Bitiş tarihine kadar girsin** — `endsAt` korunur, krediler durur, üye
+  kalan hakkını kullanır; paket yalnızca yenilenmez.
+- **Girişi hemen bitsin** — bugünkü davranış.
+
+Yaklaşan randevu engeli ("önce randevuları iptal edin") yalnızca ikinci
+seçenek için anlamlı; birincide randevular geçerli kalmalı.
+
+**7d. İptal son tarihi ve devamsızlık.** *(Kullanıcı politikası,
+3 Eylül 2026.)* Üye en geç **2 saat** kala iptal etmezse randevuya
+katılmış sayılır ve hakkı yanar. **Günün ilk 2 saatindeki dersler için son
+tarih bir gün öncesi** — 07:00 dersini 05:00'te iptal ettirmek politika
+değil tuzak.
+
+Bunun düz bir saat sayısıyla ifade edilemeyeceğine dikkat: eşik artık bir
+**son tarih hesabı**. `openingHours` zaten kiracıda duruyor, "günün ilk 2
+saati" oradan türetilebilir; salon saatlerini girmemişse sabit bir saate
+düşülür.
+
+⚠️ **İki gerçek boşluk — bu madde onlarsız yarım kalır:**
+
+1. **Antrenör/yönetici iptali koşulsuz iade ediyor.** `sessions.ts`'te
+   `shouldRefund = isTrainer || isAdmin`. Yani üye gelmediğinde antrenörün
+   "İptal" demesi hakkı geri veriyor — bu politikanın tam tersi. Antrenörün
+   bugün elinde ya "Tamamla" (yalan) ya "İptal" (salon zarar eder) var.
+   **PER-14a'nın `no-show` durumu buraya çekilmeli**, Kuşak 3'te
+   bekletilirse politikanın her gün düşülecek bir deliği olur. Yönetici
+   iadesi de otomatik değil, açıkça sorulan bir karar olmalı ("hak iade
+   edilsin mi?") — gerçek mazeretin yolu bu.
+
+2. **Kayıt yok, dolayısıyla gösterilecek bir şey de yok.** İptalde
+   `pt_sessions`'a yalnızca `status` ve `updatedAt` yazılıyor. "Ben
+   gelmedim, neden düştü" sorusunun cevabı bugün hiçbir yerde durmuyor.
+   Yazılması gerekenler: `cancelledAt`, `cancelledBy`, `cancelledByRole`,
+   `refunded`, ve **`deadlineAt`** (randevu alınırken hesaplanıp yazılır).
+   Son tarihi rezervasyon anında dondurmak önemli: salon eşiği sonradan
+   değiştirirse geçmiş randevular kendi kuralıyla kalır.
+
+**Bu kayıt önce üyenin kendisine gösterilir**, yöneticiye değil. Tartışmayı
+önleyen şey, yöneticinin bir rapordan okuyup üyeye anlatması değil, üyenin
+randevu kartında en başından **"Son iptal: 4 Eylül 21:00"** yazması ve
+sonrasında "Son tarih geçtikten sonra iptal edildi, hak yandı" satırını
+kendi geçmişinde görmesi. Politikayı yalnızca iptal etmeye çalışırken
+öğrenen üye için kural bir tuzaktır.
+
+Raporda karşılığı: yanan haklar ve geç iptaller (madde 5'in kartlarına
+eklenir).
+
+**7e. PKG-10 · Dondurma.** Kota ve gün sayısını **salon sahibi seçer**
+(paket bazında, `freezePolicy`) — form bunu zaten alıyor (`minDays`,
+`maxCount`); eksik olan `freezeMemberPackage` callable'ı ve dondurma
+arayüzü. Varsayılanlar: en az 15 gün, 6 aydan kısa pakette hak yok, 6 ayda
+1, yılda 2, iki yılda 4 kez.
+
+*Özgün madde:* İkisi aynı soruyu
 soruyor (para/hak geri nasıl döner) ve ayrı ayrı yapılırsa çelişirler.
 `cancellationHours` alanı var ama yönetici ekranı yok.
-*PER-11 buraya katlanıyor: `member/index.tsx` ve `member/classes.tsx`
-iptal onayında sabit "24 saatten az" yazıyor; salon 48 yaptıysa üyeye yanlış
-söylüyor. Metin `tenants.cancellationHours`'tan gelmeli ve paket detayında
-kalıcı olarak yazmalı.*
 
 **7a. [~] PER-12 · Admin üye listesinde arama** *(3 Eylül 2026 — arama ve
 sıralama yapıldı).* Liste ayrıca **alfabetik sıralandı**; öncesinde
