@@ -148,7 +148,7 @@ antrenör oluşturmasını da callable'a taşı (`consumeCredit: false` bayrağ�
 ### Kuşak 2 — salon sahibinin ve antrenörün günlük soruları
 
 *Durum (3 Eylül 2026):* **5, 5a, 5b, 5c ve 7a tamamlandı**, 6 kısmen.
-Kalan: **7e (dondurma)** — 7b/7c/7d tamamlandı.
+**Kuşak 2 tamamlandı** (3 Eylül 2026).
 
 *Sıra değişikliği ve gerekçesi:* ders kümesi (PER-8 → PER-9 → PER-10)
 raporlamanın önüne alındı. Üçü de `ClassSession`'a dokunuyor — ayrı ayrı
@@ -329,11 +329,17 @@ kendi geçmişinde görmesi. Politikayı yalnızca iptal etmeye çalışırken
 Raporda karşılığı: yanan haklar ve geç iptaller (madde 5'in kartlarına
 eklenir).
 
-**7e. PKG-10 · Dondurma.** Kota ve gün sayısını **salon sahibi seçer**
-(paket bazında, `freezePolicy`) — form bunu zaten alıyor (`minDays`,
-`maxCount`); eksik olan `freezeMemberPackage` callable'ı ve dondurma
-arayüzü. Varsayılanlar: en az 15 gün, 6 aydan kısa pakette hak yok, 6 ayda
-1, yılda 2, iki yılda 4 kez.
+**7e. [x] PKG-10 · Dondurma** *(3 Eylül 2026 — deploy edildi, simülatörde
+uçtan uca doğrulandı: 15 gün donduruldu, bitiş 31 Eki → 15 Kas, hak
+önbelleği düştü).* Kota ve gün sayısını **salon sahibi seçer**
+(paket bazında, `freezePolicy`). Varsayılanlar: en az 15 gün; kota süreye
+göre öneriliyor — 6 aydan kısada yok, 6 ayda 1, yılda 2, iki yılda 4.
+
+**Kalan:** dondurmayı erken bitirme (üye planladığından önce döndü) yok;
+bugün donma kendi süresinde biter. Bir de `sweepPackageStatuses` günlük
+çalıştığı için donma bittiği gün ile önbelleğin geri gelmesi arasında
+saatler olabilir — check-in bu arada `frozen` uyarısı verir ama personel
+yine de içeri alabilir, o yüzden engelleyici değil.
 
 *Özgün madde:* İkisi aynı soruyu
 soruyor (para/hak geri nasıl döner) ve ayrı ayrı yapılırsa çelişirler.
