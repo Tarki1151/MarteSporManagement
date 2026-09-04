@@ -37,15 +37,51 @@ mağaza engeli olmayan hiçbir şey mağaza engelinin önüne geçmez.
 **1. P0-1 · Freemium duvarı (IAP).** *(2 Eylül 2026: sunucu yarısı
 `revenueCatWebhook`, istemci yarısı `services/purchases.ts` + yeniden
 yazılan `paywall.tsx` hazır. Apple'da abonelik grubu ve iki ürün oluşturuldu,
-Paid Apps anlaşması `Processing`. **Kalan:** RevenueCat panel kurulumu
-(In-App Purchase Key, entitlement `pro`, offering `default`), EAS ortam
-değişkenleri, webhook secret + deploy, Play tarafında abonelik ürünleri,
-ve yeni bir EAS build — `react-native-purchases` native modül.)* Açık maddeler içinde tek başına en
+Paid Apps anlaşması `Processing`. **4 Eylül 2026:** Play tarafı bitti —
+`com.gymentra.mobile.pro.monthly` ve `.yearly` oluşturuldu, temel planlar
+`ACTIVE`, 173 bölgede fiyat (TR ₺499,99 / ₺4.999,99, iOS ile eşit).
+RevenueCat'te entitlement `pro` dört ürüne, `default` offering'indeki iki
+paket her iki platforma bağlandı. `EXPO_PUBLIC_REVENUECAT_ANDROID_KEY` EAS
+`production` ortamına eklendi; versionCode 4 internal track'te. Apple'da
+abonelik grubu yerelleştirmesi ve iki inceleme ekran görüntüsü (1242×2208)
+yüklendi. **Kalan:** Apple'daki iki ürün hâlâ `MISSING_METADATA` — API'nin
+gösterdiği tüm alanlar dolu, eksik alan App Store Connect arayüzünden
+okunacak. Ayrıca webhook secret + deploy ve gerçek cihazda satın alma
+doğrulaması.)* Açık maddeler içinde tek başına en
 ağırı. Bir salon 10 aktif üyeye ulaşınca 11.'yi **hiçbir zaman**
 onaylayamıyor; `paywall.tsx`'teki yükseltme düğmesi yalnızca geri gidiyor.
 Tarabya Marte için elle bir abonelik yazılarak geçici olarak açıldı, yani
 **sorun çözülmedi, ertelendi** — ikinci salon aynı duvara çarpar. RevenueCat
 projesi zaten açılmış. Gerçek satın alma akışı + sunucu tarafı doğrulama.
+
+**1a. [x] P0-1a · Paywall'un abonelikli durumu yok** *(4 Eylül 2026 —
+görüldü ve aynı gün kapatıldı).* `alreadySubscribed` [`paywall.tsx:51`] hesaplanıyor ama tek bir
+yerde kullanılıyor: yeşil "Aboneliğin zaten aktif" kartını çizmek için
+(`:134`). Plan seçici (`:145`) ve satın alma bloğu (`:208`) yalnızca
+`packages.length > 0` koşuluna bakıyor. Sonuç: aktif abonesi olan bir salona
+"zaten abonesin" yazan bir kartın hemen altında **çalışan** bir "Aboneliği
+başlat" düğmesi gösteriliyor. Aynı dönem seçilirse mağaza anlamsız bir hata
+döndürür; **diğer dönem seçilirse gerçek bir plan değişikliği/yeni işlem
+başlar** — kullanıcı istemeden. Üstelik başlık metni de abonelik aktifken
+hâlâ "Ücretsiz plan 10 aktif üyeye kadar, şu an N üyen var" diyor; aboneli
+salonun limiti yok. Aktif aboneye satın alma teklif eden ekran, App Store
+incelemesinin klasik takıldığı desendir — bu yüzden Kuşak 1'in başında.
+
+**Çözüm:** `alreadySubscribed` iken plan seçici, "Aboneliği başlat", "Satın
+alımlarımı geri yükle" ve otomatik yenileme metni gizlensin; başlık ve
+açıklama "aboneliğin aktif, sınırsız üye ekleyebilirsin" anlamına dönsün;
+yalnızca yeşil kart ve "Geri dön" kalsın. Ayrıca arayüzdeki "Premium ile"
+başlığı `Pro` olsun — ürünler ve entitlement `pro`, kullanıcı "Pro" satın
+alıp "Premium" yazısı görüyor.
+
+*Nasıl çözüldü:* `alreadySubscribed` artık dört yeri birden kapatıyor — plan
+seçici, satın alma bloğu ve "satın alma açılamadı" uyarısı `!alreadySubscribed`
+koşuluna alındı; başlık ve açıklama abonelikli durumda "Aboneliğin aktif /
+Sınırsız üye ekleyebilirsin" diyor. Yeşil kart, başlıkla aynı şeyi tekrar
+etmemesi için sorun gidermeye ayrıldı ("Üye onaylayamıyor musun?"). "Premium
+ile" → "Pro ile". Aktif abonenin görebildiği tek eylem "Geri dön". Tip kontrolü
+ve 148 test geçiyor. **Cihazda doğrulanmadı** — abonelikli bir salonla paywall
+açılıp satın alma düğmesinin gerçekten kaybolduğu görülmeli.
 
 **2. Mağaza girişini bitir (Android).** Metinler `PLAY_STORE.md` §1'de hazır,
 1024×500 öne çıkan grafik ve üretim sürümü kaldı.
